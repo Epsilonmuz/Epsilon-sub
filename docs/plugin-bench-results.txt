@@ -1,105 +1,105 @@
 [PASS] 23 of 23 built-in layers decode
 
 preset                     category          LUFS    peak   phone  output
-Init 808                   Clean            -12.8    -3.0   -34.7     0.0
+Init 808                   Clean            -12.8    -4.2   -29.5    -1.7
 [PASS] preset plays clean: Init 808
-Clean Sub                  Clean            -12.7    -4.7   -33.6    -2.5
+Clean Sub                  Clean            -12.8    -5.6   -32.4    -3.6
 [PASS] preset plays clean: Clean Sub
-Pure Sine                  Clean            -12.5    -6.5   -51.1    -3.0
+Pure Sine                  Clean            -12.8    -6.8   -51.4    -3.3
 [PASS] preset plays clean: Pure Sine
-Soft Boom                  Clean            -12.8    -3.3   -33.6    -1.0
+Soft Boom                  Clean            -12.8    -5.5   -31.4    -3.0
 [PASS] preset plays clean: Soft Boom
-R&B Sub                    Clean            -12.7    -4.4   -31.6    -1.5
+R&B Sub                    Clean            -12.8    -4.8   -30.3    -3.1
 [PASS] preset plays clean: R&B Sub
-Long Trap 808              Trap             -13.1    -4.6   -30.7    -2.0
+Long Trap 808              Trap             -12.8    -6.4   -26.1    -3.8
 [PASS] preset plays clean: Long Trap 808
-Trap Classic               Trap             -12.8    -0.7   -26.7     1.0
+Trap Classic               Trap             -12.8    -0.8   -25.7    -2.2
 [PASS] preset plays clean: Trap Classic
-Club Trap                  Trap             -12.7    -0.7   -24.5     2.0
+Club Trap                  Trap             -12.8    -0.8   -23.8     0.7
 [PASS] preset plays clean: Club Trap
-Glide Machine              Trap             -12.7    -1.1   -26.6    -0.5
+Glide Machine              Trap             -12.8    -1.8   -26.1    -1.4
 [PASS] preset plays clean: Glide Machine
-Deep Tail                  Trap             -13.1    -4.9   -30.4    -2.0
+Deep Tail                  Trap             -12.8    -4.9   -28.1    -3.0
 [PASS] preset plays clean: Deep Tail
-Southern Boom              Trap             -12.7    -1.3   -29.6     1.0
+Southern Boom              Trap             -12.8    -2.4   -26.4    -2.0
 [PASS] preset plays clean: Southern Boom
-Velvet Trap                Trap             -13.0    -2.7   -30.6    -1.0
+Velvet Trap                Trap             -12.8    -4.8   -28.8    -3.3
 [PASS] preset plays clean: Velvet Trap
-Drill Slide                Drill            -12.9    -0.7   -23.5     1.0
+Drill Slide                Drill            -12.8    -1.0   -22.1    -2.2
 [PASS] preset plays clean: Drill Slide
-UK Drill                   Drill            -12.9    -0.7   -21.7     0.5
+UK Drill                   Drill            -12.8    -0.7   -20.5    -0.9
 [PASS] preset plays clean: UK Drill
-NY Drill                   Drill            -12.8    -0.7   -21.3     1.0
+NY Drill                   Drill            -12.8    -0.7   -20.9     0.4
 [PASS] preset plays clean: NY Drill
-Low Note Drill             Drill            -12.7    -0.7   -23.3     0.5
+Low Note Drill             Drill            -12.8    -1.0   -22.2    -2.0
 [PASS] preset plays clean: Low Note Drill
-Slide Grit                 Drill            -13.1    -0.7   -20.4     0.5
+Slide Grit                 Drill            -13.0    -0.7   -19.3     0.5
 [PASS] preset plays clean: Slide Grit
-Distorted 808              Distorted        -13.0    -0.7   -20.5     0.5
+Distorted 808              Distorted        -12.8    -0.7   -19.8     0.0
 [PASS] preset plays clean: Distorted 808
-Hard Clip 808              Distorted        -12.8    -0.7   -20.0    -1.5
+Hard Clip 808              Distorted        -12.8    -0.7   -19.0    -2.3
 [PASS] preset plays clean: Hard Clip 808
-Fold Growl                 Distorted        -12.9    -0.7   -19.2     0.5
+Fold Growl                 Distorted        -12.7    -0.7   -16.7     0.2
 [PASS] preset plays clean: Fold Growl
-Rage Fuzz                  Distorted        -13.1    -0.7   -18.2    -1.0
+Rage Fuzz                  Distorted        -12.9    -0.7   -17.7    -1.0
 [PASS] preset plays clean: Rage Fuzz
-Tube Warmth                Distorted        -13.1    -3.7   -29.1    -0.5
+Tube Warmth                Distorted        -12.8    -3.1   -26.5    -1.4
 [PASS] preset plays clean: Tube Warmth
-Tape Saturated             Distorted        -13.0    -0.7   -23.7     1.0
+Tape Saturated             Distorted        -12.7    -0.7   -22.3     0.6
 [PASS] preset plays clean: Tape Saturated
-Screamer                   Distorted        -12.8    -0.7   -17.5     1.0
+Screamer                   Distorted        -12.6    -0.7   -17.6     1.0
 [PASS] preset plays clean: Screamer
-Punchy Short               Short            -12.5    -0.7   -26.2     4.0
+Punchy Short               Short            -12.7    -0.7   -23.7     2.7
 [PASS] preset plays clean: Punchy Short
-Knock                      Short            -12.6    -0.6   -22.3     6.0
+Knock                      Short            -12.6    -0.6   -20.8     4.5
 [PASS] preset plays clean: Knock
-Bounce                     Short            -12.4    -0.7   -26.6     3.0
+Bounce                     Short            -12.7    -0.8   -24.8     1.8
 [PASS] preset plays clean: Bounce
-Detroit Tap                Short            -12.8    -0.6   -20.4     7.5
+Detroit Tap                Short            -12.7    -0.6   -20.1     5.8
 [PASS] preset plays clean: Detroit Tap
-Kick 808                   Short            -12.7    -0.7   -24.1     4.0
+Kick 808                   Short            -12.6    -0.7   -21.6     2.1
 [PASS] preset plays clean: Kick 808
-Melodic Glide              Melodic          -13.0    -4.6   -27.8    -3.0
+Melodic Glide              Melodic          -12.8    -5.0   -26.3    -3.4
 [PASS] preset plays clean: Melodic Glide
-Bell Sub                   Melodic          -13.0    -2.0   -27.6     0.0
+Bell Sub                   Melodic          -12.8    -1.4   -27.0     0.4
 [PASS] preset plays clean: Bell Sub
-Plucked Bass               Melodic          -12.5    -0.8   -28.9     2.5
+Plucked Bass               Melodic          -12.8    -1.0   -26.1     1.3
 [PASS] preset plays clean: Plucked Bass
-Log Drum                   Log Drum         -12.4    -0.7   -24.2     4.0
+Log Drum                   Log Drum         -12.6    -0.7   -21.2     2.7
 [PASS] preset plays clean: Log Drum
-Log Drum Deep              Log Drum         -12.5    -0.7   -29.2     4.0
+Log Drum Deep              Log Drum         -12.6    -0.7   -23.8     2.6
 [PASS] preset plays clean: Log Drum Deep
-Log Drum Bright            Log Drum         -12.7    -0.7   -21.2     3.0
+Log Drum Bright            Log Drum         -12.7    -0.7   -20.5     2.1
 [PASS] preset plays clean: Log Drum Bright
-Amapiano Slide             Log Drum         -12.5    -0.7   -26.6     3.0
+Amapiano Slide             Log Drum         -12.7    -0.8   -22.4     1.8
 [PASS] preset plays clean: Amapiano Slide
-Wide Character             Wide             -12.6    -0.7   -25.3     2.0
+Wide Character             Wide             -12.8    -0.7   -24.7     1.6
 [PASS] preset plays clean: Wide Character
-Stereo Grit                Wide             -12.9    -0.7   -22.2     1.5
+Stereo Grit                Wide             -12.9    -0.7   -21.4     1.5
 [PASS] preset plays clean: Stereo Grit
-Wide Fold                  Wide             -12.8    -0.7   -20.3     1.0
+Wide Fold                  Wide             -12.8    -0.7   -18.8     0.7
 [PASS] preset plays clean: Wide Fold
-Phone Ready                Mix Ready        -12.5    -0.7   -22.2     2.5
+Phone Ready                Mix Ready        -12.7    -0.7   -22.0     0.4
 [PASS] preset plays clean: Phone Ready
-Heard Everywhere           Mix Ready        -12.8    -0.7   -24.0     3.0
+Heard Everywhere           Mix Ready        -12.7    -0.7   -22.6     1.1
 [PASS] preset plays clean: Heard Everywhere
-808 Classic                Basic 808        -12.8    -2.6   -32.3    -0.4
+808 Classic                Basic 808        -12.8    -3.9   -29.6    -2.1
 [PASS] preset plays clean: 808 Classic
-808 Long Decay             Basic 808        -12.8    -4.4   -31.3    -2.4
+808 Long Decay             Basic 808        -12.8    -5.7   -29.1    -3.6
 [PASS] preset plays clean: 808 Long Decay
-808 Short Tight            Basic 808        -12.8    -0.7   -26.6     3.9
+808 Short Tight            Basic 808        -12.7    -0.7   -24.5     2.9
 [PASS] preset plays clean: 808 Short Tight
-808 Accent Boom            Basic 808        -12.8    -0.7   -28.6     0.9
+808 Accent Boom            Basic 808        -12.8    -1.1   -27.1    -2.0
 [PASS] preset plays clean: 808 Accent Boom
-808 Tuned Bass             Basic 808        -12.8    -4.4   -29.9    -2.1
+808 Tuned Bass             Basic 808        -12.8    -4.9   -28.3    -3.1
 [PASS] preset plays clean: 808 Tuned Bass
-808 Warm Tape              Basic 808        -12.8    -0.7   -26.7     0.7
+808 Warm Tape              Basic 808        -12.8    -0.7   -25.3    -2.5
 [PASS] preset plays clean: 808 Warm Tape
-808 Driven                 Basic 808        -12.8    -0.7   -22.3     0.3
+808 Driven                 Basic 808        -12.8    -0.9   -22.0    -0.9
 [PASS] preset plays clean: 808 Driven
-808 Sine Snap              Basic 808        -12.8    -2.9   -34.7    -0.6
+808 Sine Snap              Basic 808        -12.8    -4.7   -32.8    -2.9
 [PASS] preset plays clean: 808 Sine Snap
-Heavyweight Hybrid         Hybrid Trap      -12.8    -6.4   -27.0    -4.0
+Heavyweight Hybrid         Hybrid Trap      -12.8    -6.4   -26.9    -4.0
 [PASS] preset plays clean: Heavyweight Hybrid
 Glass Top Boom             Hybrid Trap      -12.8    -3.9   -30.8    -1.3
 [PASS] preset plays clean: Glass Top Boom
@@ -107,41 +107,41 @@ Thick Standard             Hybrid Trap      -12.8    -0.7   -23.9     1.4
 [PASS] preset plays clean: Thick Standard
 Cyclical Phone Killer      Hybrid Trap      -12.8    -0.7   -21.9    -1.3
 [PASS] preset plays clean: Cyclical Phone Killer
-Octave Ghost               Hybrid Trap      -12.8    -5.5   -28.3    -3.4
+Octave Ghost               Hybrid Trap      -12.8    -5.5   -28.4    -3.4
 [PASS] preset plays clean: Octave Ghost
-Eternity Pad 808           Hybrid Trap      -12.8    -4.3   -33.0    -1.6
+Eternity Pad 808           Hybrid Trap      -12.8    -4.2   -33.1    -1.6
 [PASS] preset plays clean: Eternity Pad 808
-Heavy Reese                Hybrid Trap      -12.8    -1.8   -29.4    -1.6
+Heavy Reese                Hybrid Trap      -12.8    -2.1   -29.5    -1.6
 [PASS] preset plays clean: Heavy Reese
-Talking 808                Hybrid Trap      -12.8    -0.7   -28.1     1.8
+Talking 808                Hybrid Trap      -12.7    -0.7   -28.1     1.8
 [PASS] preset plays clean: Talking 808
-UK Slide Hybrid            Hybrid Drill     -12.8    -1.4   -22.1    -2.4
+UK Slide Hybrid            Hybrid Drill     -12.8    -1.3   -22.1    -2.4
 [PASS] preset plays clean: UK Slide Hybrid
-Dark Reese Drill           Hybrid Drill     -12.8    -0.8   -25.9     1.2
+Dark Reese Drill           Hybrid Drill     -12.8    -0.9   -26.0     1.2
 [PASS] preset plays clean: Dark Reese Drill
-NY Grit Slide              Hybrid Drill     -12.8    -0.8   -22.3    -0.3
+NY Grit Slide              Hybrid Drill     -12.8    -0.8   -22.2    -0.3
 [PASS] preset plays clean: NY Grit Slide
-Whale Slide                Hybrid Drill     -12.8    -2.7   -29.6    -0.4
+Whale Slide                Hybrid Drill     -12.8    -2.8   -29.6    -0.4
 [PASS] preset plays clean: Whale Slide
 Rum Stretch Drill          Hybrid Drill     -12.8    -0.7   -22.8    -0.5
 [PASS] preset plays clean: Rum Stretch Drill
-Donk Pop                   Hybrid Dembow    -12.8    -1.4   -23.2     0.8
+Donk Pop                   Hybrid Dembow    -12.8    -1.3   -23.4     0.8
 [PASS] preset plays clean: Donk Pop
 Perreo Thump               Hybrid Dembow    -12.8    -0.7   -22.5     2.6
 [PASS] preset plays clean: Perreo Thump
-Glass Donk                 Hybrid Dembow    -12.8    -2.3   -26.5     0.0
+Glass Donk                 Hybrid Dembow    -12.8    -2.2   -26.5     0.0
 [PASS] preset plays clean: Glass Donk
-Reggaeton Round            Hybrid Dembow    -12.8    -0.9   -31.3     1.8
+Reggaeton Round            Hybrid Dembow    -12.9    -0.9   -31.2     1.8
 [PASS] preset plays clean: Reggaeton Round
-Moombah Reese              Hybrid Dembow    -12.8    -0.7   -27.3     2.7
+Moombah Reese              Hybrid Dembow    -12.7    -0.7   -27.3     2.7
 [PASS] preset plays clean: Moombah Reese
-Brooding Bounce            Hybrid Dembow    -12.8    -0.7   -23.6     1.0
+Brooding Bounce            Hybrid Dembow    -12.9    -0.7   -23.7     1.0
 [PASS] preset plays clean: Brooding Bounce
-Layer Cake                 Game Changers    -12.8    -0.7   -26.4     1.5
+Layer Cake                 Game Changers    -12.9    -0.7   -26.4     1.5
 [PASS] preset plays clean: Layer Cake
 Frozen Whale               Game Changers    -12.8    -5.9   -28.8    -3.6
 [PASS] preset plays clean: Frozen Whale
-Eternity Pluck             Game Changers    -12.8    -2.4   -30.9     0.1
+Eternity Pluck             Game Changers    -12.8    -2.4   -30.8     0.1
 [PASS] preset plays clean: Eternity Pluck
 Brooding Ring              Game Changers    -12.8    -1.0   -27.4    -0.3
 [PASS] preset plays clean: Brooding Ring
@@ -149,11 +149,11 @@ Drillbow                   Game Changers    -12.9    -0.7   -22.1     2.1
 [PASS] preset plays clean: Drillbow
 Talking Grit               Game Changers    -12.8    -0.7   -23.1     1.4
 [PASS] preset plays clean: Talking Grit
-Sample Only Heavyweight    Game Changers    -12.8    -7.2   -26.8    -4.7
+Sample Only Heavyweight    Game Changers    -12.7    -7.2   -26.7    -4.7
 [PASS] preset plays clean: Sample Only Heavyweight
-Grit Stack Raw             Game Changers    -12.8    -5.6   -24.6    -2.4
+Grit Stack Raw             Game Changers    -12.8    -5.5   -24.5    -2.4
 [PASS] preset plays clean: Grit Stack Raw
-[PASS] every factory preset within 0.45 LU of the v1.0 presets' level, -12.8 LUFS on this phrase (worst 0.40)
+[PASS] every factory preset within 0.45 LU of -12.8 LUFS on this phrase (worst 0.25)
 [PASS] user sample loads (e808-bench-sample)
 [PASS] user sample plays on note E1 at about 40.0 Hz (engine off)
 [PASS] session state restores Layer B and its user sample

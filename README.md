@@ -39,7 +39,9 @@ Layers play at 4x with cubic interpolation, follow note, glide and bend (not the
 
 Every factory preset now carries a light baseline of these (Snap 30, Sigh 25, Vary 20, Vel > Length 25, Tone Decay 25) unless it sets them itself; Pure Sine stays pure.
 
-**New presets (35):** Basic 808 (8, engine only, voiced from the research), Hybrid Trap (8), Hybrid Drill (5), Hybrid Dembow (6) and Game Changers (8: Layer Cake, Frozen Whale, Eternity Pluck, Brooding Ring, Drillbow, Talking Grit, and two engine-off sample instruments). All loudness-matched to the v1.0 set (docs/preset-audit.txt).
+**Every preset is a hybrid.** All 75 presets except Pure Sine blend the engine's sine with a sample layer, phase-locked: the 41 v1.0 presets and the Basic 808s each got the sound that suits them (Heavyweight under the long trap and drill 808s, Short and Rum under the knocks, Cyclical, Reaper and Grit Stack under the distorted ones, Perfect Donk under the log drums, the reeses under the wide ones). Where a preset is shorter than its sample, the layer's Decay follows the preset's Length. Set Layer A to Off for the engine alone.
+
+**New presets (35):** Basic 808 (8, voiced from the research), Hybrid Trap (8), Hybrid Drill (5), Hybrid Dembow (6) and Game Changers (8: Layer Cake, Frozen Whale, Eternity Pluck, Brooding Ring, Drillbow, Talking Grit, and two engine-off sample instruments). All presets are loudness-matched to -12.8 LUFS on the audit phrase (docs/preset-audit.txt).
 
 > **About the Cymatics sounds.** The 15 Orchid samples, and the Fusions made from them, are built into this build for Edison's own productions. No licence file came with the pack, and most sample-pack licences allow use in music but not redistribution inside a product. Before selling or giving away Epsilon 808, replace them: put sounds you own or may redistribute in a folder with a `manifest.json` and run `tools/make_layers.py`, then rebuild. The engine and presets do not depend on which sounds are installed (presets name their layers; rename those to match).
 

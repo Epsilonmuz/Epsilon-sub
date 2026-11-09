@@ -148,13 +148,11 @@ int main(int argc, char** argv)
         levels.push_back(lufs);
         fixes.add(juce::String(presets[static_cast<std::size_t>(i)].name) + "|" + juce::String(output, 2) + "|" + juce::String(lufs, 2));
     }
-    // v1.1 presets are matched to the v1.0 presets (the first 41) as measured here, so switching compares sounds
-    std::vector<double> v10(levels.begin(), levels.begin() + std::min<std::size_t>(41, levels.size()));
-    std::nth_element(v10.begin(), v10.begin() + static_cast<long>(v10.size() / 2), v10.end());
-    const auto reference = v10[v10.size() / 2];
+    // Every factory preset is matched to -12.8 LUFS on this phrase (where the v1.0 set measured here).
+    const double reference = -12.8;
     double worst = 0;
     for (auto l : levels) worst = std::max(worst, std::abs(l - reference));
-    check(worst <= 0.45 || fix, "every factory preset within 0.45 LU of the v1.0 presets' level, " + juce::String(reference, 1) + " LUFS on this phrase (worst " + juce::String(worst, 2) + ")");
+    check(worst <= 0.45 || fix, "every factory preset within 0.45 LU of " + juce::String(reference, 1) + " LUFS on this phrase (worst " + juce::String(worst, 2) + ")");
     if (fix)
         for (std::size_t i = 0; i < levels.size(); ++i)
             if (std::abs(levels[i] - reference) > 0.3)
