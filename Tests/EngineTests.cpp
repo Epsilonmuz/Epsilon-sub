@@ -1,5 +1,7 @@
 // Epsilon 808 engine tests: tuning, punch, glide, clicks, aliasing, clipper, Split, priority, retrigger,
 // Analog, velocity, Kick Lock, Translate, width, Phone Check models, idle, CPU.
+// v1.1: hybrid layers (tuning, tracking, glide, Phase Lock, low cut, envelope, mono-safe stereo) and 808 character
+// (Snap, Sigh, Vary, Vel > Length, Tone Decay).
 #include "Boom808Engine.h"
 #include <vector>
 #include <cmath>
@@ -38,6 +40,136 @@ double inharmonicPeak(const std::vector<float>& x, double f0, double maxHz) {
   for (int k = 1; k <= n / 2; ++k) { double f = k * 48000.0 / n, p = std::norm(b[k]); pk = std::max(pk, p); double d = std::abs(f - std::round(f / f0) * f0); if (f > 15 && f < maxHz && d > 4 * 48000.0 / n + 1.5) worst = std::max(worst, p); }
   return 10 * std::log10(worst / pk); }
 Settings clean() { Settings s; s.punchSemitones = 0; s.tone = 0; s.sub = 0; s.click = 0; s.driveDb = 0; s.driveMix = 0; s.glue = 0; s.clip = false; s.sustain = 1; s.lengthMs = 8000; s.glideMs = 0; return s; }
+
+
+// ---- v1.1 hybrid helpers: a synthetic "808 sample" (decaying sine with a pitch drop, optional stereo side)
+struct TestSample { std::vector<float> mid, side; LayerSample ls; };
+TestSample makeSample(double hz, double phase, double seconds = 3.0, bool stereo = false, double rate = 44100) {
+  TestSample t; const int n = (int)(seconds * rate); t.mid.resize(n); t.side.resize(n);
+  double ph = phase;
+  for (int i = 0; i < n; ++i) { double tt = i / rate; double f = hz * std::pow(2.0, 7.0 * std::exp(-tt / 0.02) / 12.0);
+    ph += f / rate; t.mid[i] = (float)(0.9 * std::exp(-tt / 0.9) * std::sin(2 * PI * ph));
+    t.side[i] = stereo ? (float)(0.3 * std::exp(-tt / 0.9) * std::sin(2 * PI * ph * 9.0)) : 0.0f; }
+  t.ls.mid = t.mid.data(); t.ls.side = stereo ? t.side.data() : nullptr; t.ls.length = n; t.ls.rate = rate; t.ls.rootNote = 24; t.ls.rootHz = (float)hz;
+  return t; }
+Settings layered(bool engineOn) { Settings s = clean(); s.layers[0].on = true; s.layers[0].levelDb = 0; s.engineDb = engineOn ? 0.0f : -60.0f; return s; }
+template <typename F>
+Out runL(double sr, double seconds, Settings s, const LayerSample* a, F events, const LayerSample* b = nullptr) {
+  Engine e; e.prepare(sr); e.setLayerSample(0, a); e.setLayerSample(1, b); Out o; int n = (int)(sr * seconds); o.l.resize(n); o.r.resize(n);
+  for (int p = 0; p < n; p += 64) { int m = std::min(64, n - p); events(e, p); e.render(o.l.data() + p, o.r.data() + p, m, s); }
+  return o; }
+double rms(const std::vector<float>& x, int a, int b) { double e = 0; for (int i = a; i < b; ++i) e += x[i] * x[i]; return std::sqrt(e / std::max(1, b - a)); }
+std::vector<float> lowpassed(const std::vector<float>& x, double sr, double fc) {   // 4 one-pole passes
+  std::vector<float> y = x; double a = std::exp(-2 * PI * fc / sr);
+  for (int pass = 0; pass < 4; ++pass) { double z = 0; for (auto& v : y) { z = (1 - a) * v + a * z; v = (float)z; } }
+  return y; }
+
+void hybridTests() {
+  const double sr = 48000;
+  // 1. tuning: a sample 31 cents sharp of C1 is auto-tuned; it follows the keys
+  { auto smp = makeSample(33.29, 0.0);
+    for (int note : { 24, 31, 36 }) {
+      auto o = runL(sr, 1.2, layered(false), &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(note, 1.0f); });
+      const double want = 440 * std::pow(2.0, (note - 69) / 12.0), got = freqOf(o.l, sr, (int)(0.3 * sr), (int)(1.1 * sr));
+      CHECK(std::abs(1200 * std::log2(got / want)) < 2.0, "layer tuning: a +31 cent sample plays note %d at %.3f Hz (%+.2f cents)", note, got, 1200 * std::log2(got / want)); } }
+  // 2. the layer follows a glide
+  { auto smp = makeSample(32.7032, 0.0); Settings s = layered(false); s.glideMs = 100;
+    auto o = runL(sr, 1.6, s, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); if (p == 24000) e.noteOn(43, 1.0f); });
+    double end = freqOf(o.l, sr, 24000 + 9600, 24000 + 30000);
+    CHECK(std::abs(1200 * std::log2(end / 97.999)) < 3.0, "layer follows the glide C2 -> G2: %.2f Hz after the slide", end); }
+  // 3. Phase Lock: whatever phase the sample's fundamental has, engine + layer add up
+  { double worstOn = 1e9, worstOff = 1e9;
+    for (int k = 0; k < 12; ++k) {
+      auto smp = makeSample(32.7032, k / 12.0);
+      double lvl[2];
+      for (int lock = 0; lock < 2; ++lock) {
+        Settings s = layered(true); s.phaseLock = lock == 1; s.punchSemitones = 10; s.punchMs = 40; s.lengthMs = 2600;
+        auto both = runL(sr, 0.5, s, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+        Settings se = s; se.layers[0].on = false;                                  // engine alone (same phase it would start on)
+        Settings sl = s; sl.engineDb = -60;                                        // layer alone
+        auto eng = runL(sr, 0.5, se, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+        auto lay = runL(sr, 0.5, sl, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+        const int a = (int)(0.06 * sr), b = (int)(0.4 * sr);
+        auto lb = lowpassed(both.l, sr, 80), le = lowpassed(eng.l, sr, 80), ll = lowpassed(lay.l, sr, 80);
+        lvl[lock] = 20 * std::log10(rms(lb, a, b) / (rms(le, a, b) + rms(ll, a, b)));   // 0 dB = perfectly in phase
+      }
+      worstOff = std::min(worstOff, lvl[0]); worstOn = std::min(worstOn, lvl[1]); }
+    CHECK(worstOn > -1.0 && worstOff < -6.0, "Phase Lock: engine + layer low end within %.2f dB of a perfect sum at every sample phase (without it: down to %.1f dB)", worstOn, worstOff); }
+  // 4. low cut: at 120 Hz the layer leaves the sub to the engine
+  { auto smp = makeSample(32.7032, 0.0); Settings s = layered(false); s.layers[0].lowCutHz = 120;
+    Settings full = layered(false);
+    auto cut = runL(sr, 0.8, s, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+    auto all = runL(sr, 0.8, full, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+    const int a = (int)(0.15 * sr), b = (int)(0.7 * sr);
+    double d = 20 * std::log10(rms(cut.l, a, b) / rms(all.l, a, b));
+    CHECK(d < -30, "layer Low Cut at 120 Hz takes a 33 Hz layer down %.1f dB", d); }
+  // 5. layer envelope: attack, hold, decay to sustain, release
+  { auto smp = makeSample(32.7032, 0.0, 6.0); for (auto& v : smp.mid) v = (float)(0.8 * std::sin(2 * PI * 32.7032 * (&v - smp.mid.data()) / 44100.0));
+    Settings s = layered(false); auto& L = s.layers[0]; L.attackMs = 100; L.holdMs = 100; L.decayMs = 400; L.sustain = 0.25f; L.releaseMs = 300;
+    s.sustain = 1; s.lengthMs = 8000;
+    auto o = runL(sr, 3.0, s, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); if (p == 96000) e.noteOff(36); });
+    auto win = [&](double t0) { return rms(o.l, (int)(t0 * sr), (int)((t0 + 0.03) * sr)); };
+    const double peak = win(0.15), early = win(0.02), sus = win(1.5), rel = win(2.5);
+    CHECK(early < 0.45 * peak && std::abs(sus / peak - 0.25) < 0.04 && rel < 0.01 * peak,
+          "layer envelope: %.0f%% at 20 ms (attack), sustain %.0f%% of peak, %.1f dB 500 ms after release", 100 * early / peak, 100 * sus / peak, 20 * std::log10(rel / peak)); }
+  // 6. stereo layers stay mono-safe: L + R is exactly the mono signal
+  { auto smp = makeSample(32.7032, 0.0, 3.0, true); Settings s = layered(true); s.layers[0].width = 1.0f;
+    auto o = runL(sr, 1.0, s, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+    Settings m = s; m.layers[0].width = 0.0f;
+    auto mono = runL(sr, 1.0, m, &smp.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); });
+    double err = 0, sideE = 0, sideLow = 0; auto sd = std::vector<float>(o.l.size());
+    for (size_t i = 0; i < o.l.size(); ++i) { err = std::max(err, (double)std::abs(0.5f * (o.l[i] + o.r[i]) - mono.l[i])); sd[i] = 0.5f * (o.l[i] - o.r[i]); sideE += sd[i] * sd[i]; }
+    auto sdl = lowpassed(sd, sr, 60); for (auto v : sdl) sideLow += v * v;
+    CHECK(err < 1e-5 && sideE > 1e-3 && 10 * std::log10(sideLow / sideE) < -25, "layer stereo: mono sum off by %.1e, side below 60 Hz %.1f dB under the side", err, 10 * std::log10(sideLow / sideE)); }
+  // 7. two layers + engine, retrigger with layers: smooth and finite
+  { auto a = makeSample(32.7032, 0.3, 3.0, true), b = makeSample(65.406, 0.0, 3.0, true); Settings s = layered(true);
+    s.layers[1].on = true; s.layers[1].lowCutHz = 150; s.layers[1].attackMs = 200; s.retrigger = true; s.clip = true; s.glideMs = 80; s.glideMode = GlideMode::always;
+    auto o = runL(sr, 2.0, s, &a.ls, [&](Engine& e, int p) { if (p == 0) e.noteOn(24, 1.0f); if (p == 30016) e.noteOn(27, 0.8f); if (p == 60032) e.noteOff(24); if (p == 60032) e.noteOff(27); }, &b.ls);
+    bool finite = true; float pk = 0; for (auto v : o.l) { finite = finite && std::isfinite(v); pk = std::max(pk, std::abs(v)); }
+    double tailLevel = rms(o.l, (int)(1.8 * sr), (int)(2.0 * sr));
+    CHECK(finite && pk <= 0.93f && tailLevel < 1e-4, "engine + two layers with slides and retrigger (Clip on): peak %.3f, silent %.1e after release", pk, tailLevel); }
+  // 8. Snap: the first 5 ms sit well above the note (the circuit's attack shift), then it settles
+  // A cycle at the snapped pitch is longer than the snap itself, so measure what it does to the phase:
+  // the extra cycles it adds must match the circuit shape (+19 st held 5 ms, then a 1.5 ms fall).
+  { auto phaseAt = [&](float snap) { Settings s = clean(); s.snap = snap;
+      auto o = run(sr, 0.5, s, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); });
+      std::complex<double> acc = 0; const int a = (int)(0.2 * sr), n = (int)(0.25 * sr);
+      for (int i = 0; i < n; ++i) acc += (double)o.l[a + i] * std::polar(1.0, -2 * PI * 65.406 * (a + i) / sr);
+      return std::arg(acc) / (2 * PI); };
+    double want = 0; for (int k = 0; k < 20000; ++k) { double t = (k + 0.5) * 0.04 / 20000; double sh = t < 0.005 ? 1 : std::exp(-(t - 0.005) / 0.0015);
+      want += 65.406 * (std::pow(2.0, 19 * sh / 12) - 1) * 0.04 / 20000; }
+    double got = phaseAt(1.0f) - phaseAt(0.0f); got -= std::floor(got); double wf = want - std::floor(want);
+    double err = std::min(std::abs(got - wf), 1 - std::abs(got - wf));
+    auto o = run(sr, 0.5, [] { Settings s = clean(); s.snap = 1.0f; return s; }(), [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); });
+    double late = freqOf(o.l, sr, 6000, 20000);
+    CHECK(err < 0.03 && std::abs(1200 * std::log2(late / 65.406)) < 1.0, "Snap: adds %.2f cycles in the attack (circuit shape: %.2f), then sits at %.2f Hz", want - wf + got, want, late); }
+  // 9. Sigh: a slow settle of up to 3 semitones over ~300 ms
+  { Settings s = clean(); s.sigh = 1.0f;
+    auto o = run(sr, 1.0, s, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); });
+    double f1 = freqOf(o.l, sr, (int)(0.03 * sr), (int)(0.08 * sr)), f2 = freqOf(o.l, sr, (int)(0.15 * sr), (int)(0.25 * sr)), f3 = freqOf(o.l, sr, (int)(0.6 * sr), (int)(0.95 * sr));
+    CHECK(f1 > f2 && f2 > f3 && 1200 * std::log2(f1 / f3) > 150 && std::abs(1200 * std::log2(f3 / 65.406)) < 2, "Sigh: %.1f -> %.1f -> %.2f Hz over a second", f1, f2, f3); }
+  // 10. Vary: no two hits identical, but within +-1.5 dB; Vary 0: identical
+  { auto hits = [&](float vary) { Settings s = clean(); s.vary = vary; s.sustain = 0; s.lengthMs = 300;
+      auto o = run(sr, 4.0, s, [&](Engine& e, int p) { for (int k = 0; k < 8; ++k) { if (p == k * 24000) e.noteOn(36, 1.0f); if (p == k * 24000 + 12032) e.noteOff(36); } });
+      std::vector<double> lv; for (int k = 0; k < 8; ++k) lv.push_back(20 * std::log10(rms(o.l, k * 24000 + 200, k * 24000 + 4000))); return lv; };
+    auto v0 = hits(0), v1 = hits(1);
+    double spread0 = *std::max_element(v0.begin(), v0.end()) - *std::min_element(v0.begin(), v0.end());
+    double spread1 = *std::max_element(v1.begin(), v1.end()) - *std::min_element(v1.begin(), v1.end());
+    CHECK(spread0 < 0.01 && spread1 > 0.3 && spread1 < 4.5, "Vary: 8 hits spread %.2f dB at 100%% (%.3f dB at 0%%)", spread1, spread0); }
+  // 11. Vel > Length: soft hits ring shorter, like the 808's accent
+  { auto len = [&](float vel) { Settings s = clean(); s.sustain = 0; s.lengthMs = 1500; s.velLength = 1.0f;
+      auto o = run(sr, 2.5, s, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, vel); });
+      double pk = rms(o.l, 500, 2000); for (int i = 2000; i < (int)o.l.size() - 1000; i += 480) if (rms(o.l, i, i + 960) < pk * 0.01) return i / sr; return 2.5; };
+    double hard = len(1.0f), soft = len(0.3f);
+    CHECK(soft < 0.6 * hard, "Vel > Length: -40 dB after %.2f s at full velocity, %.2f s at 30%%", hard, soft); }
+  // 12. Tone Decay: the harmonics fade before the body
+  { auto ratio = [&](float td) { Settings s = clean(); s.tone = 0.8f; s.toneDecay = td; s.sustain = 0; s.lengthMs = 3000;
+      auto o = run(sr, 2.0, s, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); });
+      const int n = 4800; auto at = [&](double t) { int a = (int)(t * sr); return 10 * std::log10(bandEnergy(o.l, sr, a, n, 120, 210) / bandEnergy(o.l, sr, a, n, 55, 75)); };
+      return at(1.2) - at(0.05); };
+    double off = ratio(0), on = ratio(1);
+    CHECK(on < off - 4, "Tone Decay: 2nd harmonic vs body changes %.1f dB over the tail (%.1f dB with Tone Decay off)", on, off); }
+}
 
 int main() {
   for (double sr : { 44100.0, 48000.0, 96000.0 }) {
@@ -201,6 +333,7 @@ int main() {
     double phone = bandDb(PhoneModel::phone), laptop = bandDb(PhoneModel::laptop), buds = bandDb(PhoneModel::earbuds), car = bandDb(PhoneModel::car);
     CHECK(phone < -40 && laptop < -25 && buds < -1 && buds > -12 && car > 3,
           "Phone Check at 44 Hz: Phone %.1f dB, Laptop %.1f dB, Earbuds %.1f dB, Car %+.1f dB", phone, laptop, buds, car); }
+  hybridTests();
   // CPU: a busy 808 line, all effects on
   { Settings s; s.translate = 60; s.glue = 60; s.width = 50; s.cutoffHz = 3000; s.resonance = 0.3f; s.driveDb = 18;
     Engine e; e.prepare(48000); std::vector<float> l(256), r(256); const int blocks = 48000 * 20 / 256;

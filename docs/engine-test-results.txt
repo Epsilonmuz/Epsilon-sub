@@ -16,7 +16,7 @@
 [PASS] Width at 100%: mono sum off by 3.6e-07, sub in the sides -31.3 dB below the sub
 [PASS] silent before the first note, decays to 1.6e-37 after release, all finite
 [PASS] Phone Check takes the 44 Hz fundamental down -66.3 dB
-[PASS] Clip holds peaks at 0.924 with +12 dB output and +20 dB drive
+[PASS] Clip holds peaks at 0.921 with +12 dB output and +20 dB drive
 [PASS] clipper aliasing (2x + ADAA): worst -92.2 dB in C1-C3, -77.9 dB at C4, +36 dB drive and +6 dB into Clip
 [PASS] Split at 120 Hz: -0.00 dB change with no drive; under +30 dB Hard drive the 44 Hz sub is +0.1 dB vs clean (+4.2 dB without Split), harmonics +91 dB
 [PASS] note priority: Low stays on 65.41 Hz, High stays on 98.00 Hz, Last moves to 98.00 Hz
@@ -25,6 +25,20 @@
 [PASS] velocity to Punch: soft hit starts at 68.9 Hz, hard hit at 92.9 Hz
 [PASS] Kick Lock: 808 vs kick correlation -0.97 off, 0.95 Exact (240-sample lookahead), 0.91 Live; 808 level in the 10 ms after the kick -9.8 dB
 [PASS] Phone Check at 44 Hz: Phone -66.3 dB, Laptop -45.7 dB, Earbuds -3.3 dB, Car +4.7 dB
-   CPU: 6.62% of one core at 48 kHz, all effects on
+[PASS] layer tuning: a +31 cent sample plays note 24 at 32.703 Hz (+0.00 cents)
+[PASS] layer tuning: a +31 cent sample plays note 31 at 48.999 Hz (+0.00 cents)
+[PASS] layer tuning: a +31 cent sample plays note 36 at 65.406 Hz (+0.00 cents)
+[PASS] layer follows the glide C2 -> G2: 98.00 Hz after the slide
+[PASS] Phase Lock: engine + layer low end within -0.04 dB of a perfect sum at every sample phase (without it: down to -15.0 dB)
+[PASS] layer Low Cut at 120 Hz takes a 33 Hz layer down -45.2 dB
+[PASS] layer envelope: 35% at 20 ms (attack), sustain 25% of peak, -138.1 dB 500 ms after release
+[PASS] layer stereo: mono sum off by 4.8e-07, side below 60 Hz -56.3 dB under the side
+[PASS] engine + two layers with slides and retrigger (Clip on): peak 0.920, silent 4.8e-09 after release
+[PASS] Snap: adds 0.80 cycles in the attack (circuit shape: 0.80), then sits at 65.41 Hz
+[PASS] Sigh: 72.9 -> 67.4 -> 65.42 Hz over a second
+[PASS] Vary: 8 hits spread 3.47 dB at 100% (0.000 dB at 0%)
+[PASS] Vel > Length: -40 dB after 1.02 s at full velocity, 0.56 s at 30%
+[PASS] Tone Decay: 2nd harmonic vs body changes -39.1 dB over the tail (0.0 dB with Tone Decay off)
+   CPU: 4.81% of one core at 48 kHz, all effects on
 
 0 failure(s)

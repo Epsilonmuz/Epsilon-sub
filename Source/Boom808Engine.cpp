@@ -185,6 +185,8 @@ void Engine::reset() noexcept
     soundingNote = -1;
     pendingEvent = releaseAfterPending = false;
     dcX = dcY = 0.0f;
+    sideHp1 = sideHp2 = {};
+    layerNow = {};
     filter = lowSplit1 = lowSplit2 = harmHp1 = harmHp2 = harmLp = widthHp = widthHp2 = coneLp = {};
     phoneA1 = phoneA2 = phoneB1 = phoneB2 = phoneC = {};
     splitLp1 = splitLp2 = splitHp1 = splitHp2 = {};
@@ -212,11 +214,11 @@ void Engine::reset() noexcept
     for (auto& q : kWeight) q.z1 = q.z2 = 0.0;
 }
 
-void Engine::startNote(int note, float velocity, bool fromSilence) noexcept
+void Engine::startNote(int note, float velocity, bool fromSilence, const Settings& s) noexcept
 {
     // A note that starts while the previous one still sounds hands the old voice to a 5 ms
     // crossfade tail, so the new hit can restart its phase (consistent punch) without a click.
-    if (voice.stage != 0 && voice.env > 0.0005f)
+    if (voice.stage != 0 && (voice.env > 0.0005f || !voice.layersDone()))
     {
         tail = voice;
         tailGain = 1.0f;
@@ -238,6 +240,115 @@ void Engine::startNote(int note, float velocity, bool fromSilence) noexcept
         currentNote = glideFrom = targetNote = static_cast<float>(note);
         glideTotal = 0.0f;
     }
+
+    // Vary: every hardware 808 hit differs a little (component tolerances, trigger level). Small, random,
+    // per hit: level +-1.5 dB, length +-15%, punch +-12%, tone +-30%, pitch +-5 cents.
+    const auto rnd = [this]
+    {
+        noiseSeed = noiseSeed * 1664525u + 1013904223u;
+        return static_cast<float>(static_cast<int>(noiseSeed >> 9) - (1 << 22)) / static_cast<float>(1 << 22);
+    };
+    const auto vary = std::clamp(s.vary, 0.0f, 1.0f);
+    voice.varLevel = dbToGain(1.5f * vary * rnd());
+    voice.varLength = 1.0f + 0.15f * vary * rnd();
+    voice.varPunch = 1.0f + 0.12f * vary * rnd();
+    voice.varTone = std::max(0.0f, 1.0f + 0.3f * vary * rnd());
+    voice.varCents = 5.0f * vary * rnd();
+
+    startLayers(voice, s);
+    if (s.phaseLock)
+    {
+        const auto semis = static_cast<double>(note) + s.tuneSemitones + s.fineCents * 0.01 + bend * s.bendRange;
+        voice.phase = alignedStartPhase(s, semis, velocity);
+        voice.subPhase = 0.5 * voice.phase;
+    }
+}
+
+void Engine::startLayers(Voice& v, const Settings& s) noexcept
+{
+    for (std::size_t slot = 0; slot < 2; ++slot)
+    {
+        auto& lv = v.layer[slot];
+        const auto* sample = layerNow[slot];
+        if (!s.layers[slot].on || sample == nullptr || sample->length < 8)
+        {
+            lv.stage = 0;
+            lv.env = 0.0f;
+            continue;
+        }
+        lv = {};
+        lv.stage = 1;
+        lv.pos = std::max(0.0, static_cast<double>(s.layers[slot].startMs) * 0.001 * sample->rate);
+    }
+}
+
+// The fundamental the layer plays for a given (tracked) pitch. Every sample plays at its own register
+// when you play C1, auto-tuned to its measured fundamental; it then follows the keys.
+double Engine::layerHz(const Settings& s, int slot, double trackedSemis) const noexcept
+{
+    const auto* sample = layerNow[static_cast<std::size_t>(slot)];
+    const auto& L = s.layers[static_cast<std::size_t>(slot)];
+    const auto nominal = 440.0 * std::pow(2.0, (sample->rootNote - 69.0) / 12.0);
+    const auto offset = L.track ? trackedSemis - 24.0 + L.tune : L.tune;
+    return nominal * std::pow(2.0, offset / 12.0);
+}
+
+// Phase Lock: the synth body's start phase that lines it up with layer A's fundamental at the moment
+// the punch has settled, so the two lows add up instead of cancelling.
+double Engine::alignedStartPhase(const Settings& s, double semis, float velocity) const noexcept
+{
+    const auto* sample = layerNow[0];
+    const auto& L = s.layers[0];
+    if (sample == nullptr || !L.on || sample->mid == nullptr || sample->length < 64 || sample->rootHz <= 1.0f)
+        return 0.0;
+    const auto synthHz = 440.0 * std::pow(2.0, (semis - 69.0) / 12.0);
+    const auto played = layerHz(s, 0, semis);
+    if (std::abs(std::log2(played / synthHz)) > 0.25)
+        return 0.0;   // the layer sits in another octave: nothing to line up
+
+    // synth phase gained from 0 to T, with the same pitch envelope the voice will play
+    const auto punchScale = 1.0 - s.velPunch + s.velPunch * velocity;
+    const auto punch = s.punchSemitones * punchScale * voice.varPunch;
+    const auto tau = std::max(0.002, s.punchMs * 0.001 / 3.0);
+    const auto T = std::clamp(4.0 * tau, 0.02, 0.15);
+    constexpr int steps = 256;
+    double gained = 0.0;
+    for (int k = 0; k < steps; ++k)
+    {
+        const auto t = (k + 0.5) * T / steps;
+        const auto envSemis = punch * std::exp(-t / tau)
+                            + s.snap * 19.0 * (t < 0.005 ? 1.0 : std::exp(-(t - 0.005) / 0.0015))
+                            + s.sigh * 3.0 * (0.6 + 0.4 * velocity) * std::exp(-t / 0.11);
+        gained += synthHz * std::pow(2.0, envSemis / 12.0) * (T / steps);
+    }
+
+    // the layer's fundamental phase at T: a two-period DFT at its root frequency around that frame
+    const auto ratio = played / sample->rootHz;
+    const auto frame = L.startMs * 0.001 * sample->rate + T * sample->rate * ratio;
+    const auto period = sample->rate / sample->rootHz;
+    const auto span = static_cast<int>(2.0 * period);
+    auto first = static_cast<int>(frame - 0.5 * span);
+    first = std::clamp(first, 0, std::max(0, sample->length - span - 1));
+    const auto w = twoPi * sample->rootHz / sample->rate;
+    double sinSum = 0.0, cosSum = 0.0;
+    double c = std::cos(w * first), sn = std::sin(w * first);
+    const double cw = std::cos(w), sw = std::sin(w);
+    for (int n = first; n < first + span && n < sample->length; ++n)
+    {
+        const double x = sample->mid[n];
+        sinSum += x * sn;
+        cosSum += x * c;
+        const auto c2 = c * cw - sn * sw;
+        sn = sn * cw + c * sw;
+        c = c2;
+    }
+    if (sinSum * sinSum + cosSum * cosSum < 1.0e-12)
+        return 0.0;
+    const auto theta = std::atan2(cosSum, sinSum);               // x ~ A sin(w n + theta)
+    auto target = sample->rootHz * frame / sample->rate + theta / twoPi;
+    target += (L.invert ? 0.5 : 0.0) + s.phaseDeg / 360.0;
+    auto start = target - gained;
+    return start - std::floor(start);
 }
 
 int Engine::chooseNote() const noexcept
@@ -418,7 +529,69 @@ float Engine::ClipStage::process(float x, bool clipOn, const std::array<float, h
     return static_cast<float>(out);
 }
 
-float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dtOs) noexcept
+float Engine::renderLayers(Voice& v, const Settings& s, float dtOs, const double* layerStep, float& side) noexcept
+{
+    float mid = 0.0f;
+    const auto velocityGain = (0.35f + 0.65f * v.velocity) * v.varLevel;
+    for (std::size_t slot = 0; slot < 2; ++slot)
+    {
+        auto& lv = v.layer[slot];
+        if (lv.stage == 0)
+            continue;
+        const auto* sample = layerNow[slot];
+        if (sample == nullptr) { lv.stage = 0; continue; }
+        const auto& L = s.layers[slot];
+
+        if (v.stage == 3 && lv.stage < 4)
+            lv.stage = 4;   // key released
+        switch (lv.stage)
+        {
+            case 1:
+                lv.env += dtOs / std::max(0.0005f, L.attackMs * 0.001f);
+                if (lv.env >= 1.0f) { lv.env = 1.0f; lv.stage = 2; lv.holdLeft = L.holdMs * 0.001f; }
+                break;
+            case 2:
+                lv.holdLeft -= dtOs;
+                if (lv.holdLeft <= 0.0f) lv.stage = 3;
+                break;
+            case 3:
+                if (L.decayMs < 9999.0f)
+                {
+                    const auto coef = std::exp(-6.9078f * dtOs / std::max(0.01f, L.decayMs * 0.001f));
+                    lv.env = L.sustain + (lv.env - L.sustain) * coef;
+                }
+                break;
+            case 4:
+                lv.env *= std::exp(-6.9078f * dtOs / std::max(0.003f, L.releaseMs * 0.001f));
+                if (lv.env < 1.0e-5f) { lv.env = 0.0f; lv.stage = 0; continue; }
+                break;
+            default: break;
+        }
+
+        // cubic (Catmull-Rom) read
+        const auto i = static_cast<int>(lv.pos);
+        if (i + 2 >= sample->length) { lv.stage = 0; lv.env = 0.0f; continue; }
+        const auto f = static_cast<float>(lv.pos - i);
+        const auto read = [&](const float* d)
+        {
+            const auto y0 = d[std::max(0, i - 1)], y1 = d[i], y2 = d[i + 1], y3 = d[i + 2];
+            return y1 + 0.5f * f * (y2 - y0 + f * (2.0f * y0 - 5.0f * y1 + 4.0f * y2 - y3 + f * (3.0f * (y1 - y2) + y3 - y0)));
+        };
+        auto x = read(sample->mid);
+        const auto sx = sample->side != nullptr ? read(sample->side) : 0.0f;
+        lv.pos += layerStep[slot];
+
+        if (L.lowCutHz > 0.0f)   // Linkwitz-Riley 4th order: the sub belongs to the engine
+            x = svf(lv.hp2, svf(lv.hp1, x, layerG[slot], butterworthK).high, layerG[slot], butterworthK).high;
+
+        const auto gain = layerGain[slot] * lv.env * velocityGain * (L.invert ? -1.0f : 1.0f);
+        mid += x * gain;
+        side += sx * gain * L.width;
+    }
+    return mid;
+}
+
+float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dtOs, const double* layerStep, float& side) noexcept
 {
     if (v.stage == 0)
         return 0.0f;
@@ -433,7 +606,10 @@ float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dt
             break;
         case 2:
         {
-            const auto coef = std::exp(-6.9078f * dtOs / std::max(0.02f, s.lengthMs * 0.001f));   // -60 dB at Length
+            // Vel > Length: like the 808's accent, harder hits ring longer (soft ones up to 65% shorter)
+            const auto accent = 1.0f - 0.65f * std::clamp(s.velLength, 0.0f, 1.0f) * (1.0f - v.velocity);
+            const auto length = s.lengthMs * 0.001f * v.varLength * accent;
+            const auto coef = std::exp(-6.9078f * dtOs / std::max(0.02f, length));   // -60 dB at Length
             v.env = s.sustain + (v.env - s.sustain) * coef;
             break;
         }
@@ -441,7 +617,7 @@ float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dt
         {
             const auto coef = std::exp(-6.9078f * dtOs / std::max(0.003f, s.releaseMs * 0.001f));
             v.env *= coef;
-            if (v.env < 1.0e-5f) { v.env = 0.0f; v.stage = 0; }
+            if (v.env < 1.0e-5f) { v.env = 0.0f; if (v.layersDone()) v.stage = 0; }
             break;
         }
         default: break;
@@ -453,11 +629,13 @@ float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dt
     v.subPhase += 0.5 * hz / srOs;
     v.subPhase -= std::floor(v.subPhase);
     const auto p = static_cast<float>(twoPi * v.phase);
-    auto body = std::sin(p) + s.tone * (0.35f * std::sin(2.0f * p) + 0.2f * std::sin(3.0f * p))
+    // Tone Decay: the harmonics fade faster than the body, as on a driven hardware 808
+    const auto toneNow = s.tone * v.varTone * (s.toneDecay > 0.0f ? std::pow(std::max(v.env, 0.0f), 2.5f * s.toneDecay) : 1.0f);
+    auto body = std::sin(p) + toneNow * (0.35f * std::sin(2.0f * p) + 0.2f * std::sin(3.0f * p))
               + s.sub * 0.8f * static_cast<float>(std::sin(twoPi * v.subPhase));
-    body /= 1.0f + 0.55f * s.tone + 0.8f * s.sub;
+    body /= 1.0f + 0.55f * s.tone * v.varTone + 0.8f * s.sub;
 
-    const auto velocityGain = 0.35f + 0.65f * v.velocity;
+    const auto velocityGain = (0.35f + 0.65f * v.velocity) * v.varLevel;
     auto out = body * v.env * velocityGain;
 
     // click layer: a few ms of bright noise and a 1.6 kHz blip, for presence on small speakers
@@ -474,6 +652,9 @@ float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dt
     }
     v.clickTime += dtOs;
     v.punchTime += dtOs;
+    out *= engineGain;
+    if (!v.layersDone())
+        out += renderLayers(v, s, dtOs, layerStep, side);
     return out;
 }
 
@@ -531,6 +712,7 @@ void Engine::lockPhase() noexcept
     tailGain = 1.0f;
     tailStep = static_cast<float>(1.0 / (0.004 * srOs));
     tailNote = currentNote;
+    tail.layer[0].stage = tail.layer[1].stage = 0;   // the layers carry on in the voice
     voice.phase = 0.0;
     voice.subPhase = 0.0;
 }
@@ -560,6 +742,36 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
     const auto duckRise = s.duckMs > 0.5f ? 1.0f - std::exp(-dt / (s.duckMs * 0.001f / 3.0f)) : 1.0f;
     const auto driftLfoStep = 0.23 / sr;
 
+    // hybrid layers: pick up sample changes (a changed slot stops what it was playing), per-block gains
+    for (std::size_t slot = 0; slot < 2; ++slot)
+    {
+        const auto* now = layerSource[slot].load(std::memory_order_acquire);
+        if (now != layerNow[slot])
+        {
+            voice.layer[slot].stage = 0;
+            tail.layer[slot].stage = 0;
+            layerNow[slot] = now;
+        }
+        const auto& L = s.layers[slot];
+        layerGain[slot] = dbToGain(L.levelDb);
+        layerG[slot] = std::tan(pi * std::clamp(L.lowCutHz, 10.0f, 2000.0f) / static_cast<float>(srOs));
+    }
+    engineGain = s.engineDb <= -47.5f ? 0.0f : dbToGain(s.engineDb);
+    const auto gSide = tw(150.0f);
+    // pitch envelope: Punch (the knock), Snap (the circuit's ~6 ms attack shift), Sigh (the slow settle)
+    const auto pitchEnvelope = [&s](const Voice& v)
+    {
+        const auto t = v.punchTime;
+        const auto punchScale = 1.0f - s.velPunch + s.velPunch * v.velocity;
+        const auto punchTau = std::max(0.002f, s.punchMs * 0.001f / 3.0f);
+        auto semis = s.punchSemitones * punchScale * v.varPunch * std::exp(-t / punchTau);
+        if (s.snap > 0.0f)
+            semis += s.snap * 19.0f * (t < 0.005f ? 1.0f : std::exp(-(t - 0.005f) / 0.0015f));
+        if (s.sigh > 0.0f)
+            semis += s.sigh * 3.0f * (0.6f + 0.4f * v.velocity) * std::exp(-t / 0.11f);
+        return semis;
+    };
+
     // phone model filters
     float gA = 0.0f, gC = 0.0f;
     switch (s.phoneModel)
@@ -580,7 +792,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
             if (!pendingLegato)
             {
                 const auto glideFromSounding = s.glideMode == GlideMode::always && voice.stage != 0 && s.glideMs > 0.5f;
-                startNote(pendingNote, pendingVelocity, !glideFromSounding);
+                startNote(pendingNote, pendingVelocity, !glideFromSounding, s);
                 if (glideFromSounding)
                 {
                     glideFrom = currentNote;
@@ -592,7 +804,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
             else if (s.glideMode == GlideMode::off || s.glideMs <= 0.5f)
             {
                 if (pendingReturn) { currentNote = glideFrom = targetNote = note; glideTotal = 0.0f; }
-                else startNote(pendingNote, pendingVelocity, true);
+                else startNote(pendingNote, pendingVelocity, true, s);
             }
             else
             {
@@ -608,6 +820,17 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
                     voice.clickNoiseLp = voice.clickPrev = 0.0f;
                     voice.velocity = pendingVelocity;
                     voice.stage = 1;
+                    if (!voice.layersDone() || s.layers[0].on || s.layers[1].on)
+                    {
+                        // the old layers fade out in the tail (its body silent) while fresh ones start
+                        tail = voice;
+                        tail.env = 0.0f;
+                        tail.stage = 3;
+                        tailGain = 1.0f;
+                        tailStep = static_cast<float>(1.0 / (0.005 * srOs));
+                        tailNote = currentNote;
+                        startLayers(voice, s);
+                    }
                 }
             }
             pendingReturn = false;
@@ -644,18 +867,30 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
             currentNote = targetNote;
         }
 
-        const auto punchScale = 1.0f - s.velPunch + s.velPunch * voice.velocity;
-        const auto punchTau = std::max(0.002f, s.punchMs * 0.001f / 3.0f);
-        const auto punch = s.punchSemitones * punchScale * std::exp(-voice.punchTime / punchTau);
+        const auto punch = pitchEnvelope(voice);
         // Analog: up to 30 cents of droop as the tail decays, +-4 cents per note, a slow 1.5 cent wander
         driftPhase += driftLfoStep;
         driftPhase -= std::floor(driftPhase);
         const auto analog = s.analog * (0.04f * voice.drift + 0.015f * static_cast<float>(std::sin(twoPi * driftPhase))
                                         - (voice.stage >= 2 ? 0.3f * (1.0f - voice.env) : 0.0f));
-        const auto semis = currentNote + s.tuneSemitones + s.fineCents * 0.01f + bend * s.bendRange + punch + analog;
+        const auto tracked = currentNote + s.tuneSemitones + s.fineCents * 0.01f + bend * s.bendRange + voice.varCents * 0.01f;
+        const auto semis = tracked + punch + analog;
         const auto hz = std::min(440.0 * std::pow(2.0, (semis - 69.0) / 12.0), sr * 0.45);
-        const auto tailPunch = s.punchSemitones * punchScale * std::exp(-tail.punchTime / punchTau);
-        const auto tailHz = std::min(440.0 * std::pow(2.0, (tailNote + s.tuneSemitones + s.fineCents * 0.01f + tailPunch - 69.0) / 12.0), sr * 0.45);
+        const auto tailPunch = pitchEnvelope(tail);
+        const auto tailTracked = tailNote + s.tuneSemitones + s.fineCents * 0.01f + tail.varCents * 0.01f;
+        const auto tailHz = std::min(440.0 * std::pow(2.0, (tailTracked + tailPunch - 69.0) / 12.0), sr * 0.45);
+
+        // layer read speeds (frames per oversampled step); the layers follow the note, not the punch
+        double step[2] {}, tailStepRate[2] {};
+        for (int slot = 0; slot < 2; ++slot)
+            if (const auto* sample = layerNow[static_cast<std::size_t>(slot)])
+            {
+                const auto scale = sample->rate / srOs / sample->rootHz;
+                if (!voice.layersDone())
+                    step[slot] = layerHz(s, slot, tracked) * scale;
+                if (tailGain > 0.0f && !tail.layersDone())
+                    tailStepRate[slot] = layerHz(s, slot, tailTracked) * scale;
+            }
 
         // drive gain follows velocity when asked; recomputed only when something changes
         const auto driveDb = s.driveDb * (1.0f - s.velDrive + s.velDrive * voice.velocity);
@@ -671,16 +906,21 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
 
         // four oversampled voice samples -> drive -> two halfband stages
         float os[oversample];
+        float side = 0.0f;
         for (int o = 0; o < oversample; ++o)
         {
-            auto x = renderVoiceSample(voice, s, hz, dtOs);
+            float voiceSide = 0.0f, tailSide = 0.0f;
+            auto x = renderVoiceSample(voice, s, hz, dtOs, step, voiceSide);
             if (tailGain > 0.0f)
             {
-                x += tailGain * renderVoiceSample(tail, s, tailHz, dtOs);
+                x += tailGain * renderVoiceSample(tail, s, tailHz, dtOs, tailStepRate, tailSide);
+                tailSide *= tailGain;
                 tailGain = std::max(0.0f, tailGain - tailStep);
             }
+            side += voiceSide + tailSide;
             os[o] = driveSample(x, s, cachedGain, cachedNorm);
         }
+        side *= 1.0f / static_cast<float>(oversample);
         stage1.push(os[0]); stage1.push(os[1]);
         const auto half0 = stage1.output(kernel);
         stage1.push(os[2]); stage1.push(os[3]);
@@ -721,6 +961,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
         }
 
         // Glue: single-knob compressor for an even level from note to note
+        float glueGain = 1.0f;
         if (glue > 0.0f)
         {
             const auto level = std::abs(y);
@@ -728,7 +969,8 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
             const auto over = gainToDb(compEnv) - threshold;
             const auto target = over > 0.0f ? over * (1.0f - 1.0f / ratio) : 0.0f;
             compGainDb += (target > compGainDb ? grAttack : grRelease) * (target - compGainDb);
-            y *= dbToGain(makeup - compGainDb);
+            glueGain = dbToGain(makeup - compGainDb);
+            y *= glueGain;
         }
         else
         {
@@ -737,6 +979,13 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
 
         // Width: only content above 160 Hz is spread, so the sub stays mono and the mono sum is exact
         auto l = y, r = y;
+        // the layers' own stereo (above 150 Hz, so the low end stays mono)
+        if (side != 0.0f || sideHp1.ic1 != 0.0f || sideHp2.ic1 != 0.0f)
+        {
+            const auto sd = svf(sideHp2, svf(sideHp1, side * headroom, gSide, butterworthK).high, gSide, butterworthK).high * glueGain;
+            l += sd;
+            r -= sd;
+        }
         if (width > 0.0f)
         {
             const auto high = svf(widthHp2, svf(widthHp, y, gWidth, 1.4f).high, gWidth, 1.4f).high;
@@ -780,7 +1029,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
             scopeWrite.store(slot + 1, std::memory_order_release);
             if (++windowCount >= framePeriod)
             {
-                window.envelope = voice.env;
+                window.envelope = std::max(voice.env * std::min(1.0f, engineGain), std::max(voice.layer[0].env, voice.layer[1].env));
                 window.frequencyHz = voice.stage != 0 ? static_cast<float>(hz) : 0.0f;
                 window.note = voice.stage != 0 ? semis - punch : -1.0f;
                 window.meanSquare = static_cast<float>(windowSquares / windowCount);
