@@ -1,11 +1,12 @@
 #include "PluginEditor.h"
 #include "BoomUI.h"
+#include "HybridUI.h"
 
 using namespace boomui;
 
 namespace
 {
-enum Group { body = 0, envelope = 1, effects = 2, play = 3, kick = 4 };
+enum Group { body = 0, envelope = 1, effects = 2, play = 3, kick = 4, layerA = 5, layerB = 6, character = 7 };
 
 struct KnobSpec
 {
@@ -46,6 +47,30 @@ const std::vector<KnobSpec>& knobSpecs()
         { "velPunch", "VEL > PUNCH", play, -1, palette::text, "How much velocity scales Punch. Soft notes knock less, accents knock more." },
         { "velDrive", "VEL > DRIVE", play, -1, palette::text, "How much velocity scales Drive. Accents get dirtier." },
         { "duck", "DUCK", kick, -1, palette::glass, "How long Kick Lock ducks the 808 after each kick, so the kick's front comes through. 0 = no duck, only phase lock." },
+        // Hybrid page
+        { "layerALevel", "LEVEL", layerA, -1, palette::layerA, "Layer A level against the engine." },
+        { "layerATune", "TUNE", layerA, -1, palette::layerA, "Transpose Layer A. Every layer is already tuned to the note you play." },
+        { "layerALowCut", "LOW CUT", layerA, -1, palette::layerA, "Removes Layer A below this frequency so the engine carries the sub. Off = the full sample (Phase Lock keeps it in phase with the engine)." },
+        { "layerAStart", "START", layerA, -1, palette::layerA, "Where in the sample Layer A starts. Skip its click, or start inside the tail." },
+        { "layerAWidth", "WIDTH", layerA, -1, palette::layerA, "How much of the sample's own stereo you keep (above 150 Hz only, so the sub stays mono)." },
+        { "layerAAttack", "ATTACK", layerA, -1, palette::layerA, "Layer A fade-in." },
+        { "layerAHold", "HOLD", layerA, -1, palette::layerA, "Layer A stays at full level this long before the decay." },
+        { "layerADecay", "DECAY", layerA, -1, palette::layerA, "Time for Layer A to fall to its Sustain level. Natural = the sample's own shape." },
+        { "layerASustain", "SUSTAIN", layerA, -1, palette::layerA, "Level Layer A holds while the key is down (after the Decay)." },
+        { "layerARelease", "RELEASE", layerA, -1, palette::layerA, "Fade-out of both layers after the key is released." },
+        { "layerBLevel", "LEVEL", layerB, -1, palette::layerB, "Layer B level." },
+        { "layerBTune", "TUNE", layerB, -1, palette::layerB, "Transpose Layer B, for an octave or fifth on top." },
+        { "layerBLowCut", "LOW CUT", layerB, -1, palette::layerB, "Removes Layer B below this frequency." },
+        { "layerBAttack", "FADE IN", layerB, -1, palette::layerB, "Layer B fades in over this time: let the 808 hit first and the texture bloom after it." },
+        { "layerBDecay", "LENGTH", layerB, -1, palette::layerB, "How long Layer B rings. Natural = the sample's own shape." },
+        { "layerBWidth", "WIDTH", layerB, -1, palette::layerB, "Layer B stereo (above 150 Hz only)." },
+        { "engine", "ENGINE", layerB, -1, palette::magma, "The synth body and click. Off = the layers alone, still tuned and gliding." },
+        { "phaseShift", "PHASE", layerB, -1, palette::magma, "Fine phase offset between the engine and Layer A. Phase Lock already lines them up; use this to taste." },
+        { "snap", "SNAP", character, -1, palette::magma, "The hardware 808's attack: for about 6 ms the circuit rings an octave and more higher. Too short to hear as pitch, it gives the hit its crack." },
+        { "sigh", "SIGH", character, -1, palette::magma, "The 808's slow pitch settle: up to 3 semitones above the note, falling over about 300 ms. Harder hits sigh more." },
+        { "vary", "VARY", character, -1, palette::magma, "No two hardware hits are the same. Small random changes per hit: level, length, punch, tone and a few cents." },
+        { "velLength", "VEL > LENGTH", character, -1, palette::magma, "Like the 808's accent: hard hits ring longer, soft ones shorter." },
+        { "toneDecay", "TONE DECAY", character, -1, palette::magma, "The harmonics fade faster than the body, as on a driven hardware 808, so the tail goes darker." },
     };
     return specs;
 }
@@ -76,7 +101,12 @@ public:
           phone(*p.params.getParameter("phone"), *p.params.getParameter("phoneModel")),
           kickButton(p, hub),
           keyboard(p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard),
-          browser(p)
+          browser(p),
+          selectorA(p, 0, palette::layerA), selectorB(p, 1, palette::layerB),
+          waveA(p, 0, palette::layerA), waveB(p, 1, palette::layerB), envelopeView(p),
+          track("TRACK", palette::layerA, *p.params.getParameter("layerATrack"), "TRACK"),
+          invert("INVERT", palette::layerA, *p.params.getParameter("layerAInvert"), "INVERTED"),
+          phaseLock("PHASE LOCK", palette::magma, *p.params.getParameter("phaseLock"), "PHASE LOCK")
     {
         setOpaque(true);
         hub.onUpdate = [this]
@@ -87,11 +117,41 @@ public:
                 kickButton.repaint();
         };
         for (auto* c : std::initializer_list<juce::Component*> { &cone, &tail, &driveMode, &glideMode, &priority, &kickMode, &clip, &retrigger,
-                                                                &phone, &kickButton, &advanced, &abSwitch, &keyboard, &keysButton,
+                                                                &phone, &kickButton, &viewSwitch, &abSwitch, &keyboard, &keysButton,
                                                                 &presetButton, &previous, &next, &undo, &redo })
             addAndMakeVisible(c);
         addChildComponent(browser);
         addChildComponent(kickStatus);
+        for (auto* c : std::initializer_list<juce::Component*> { &selectorA, &selectorB, &loadA, &loadB, &waveA, &waveB, &envelopeView,
+                                                                &track, &invert, &phaseLock, &loadError })
+            addChildComponent(c);
+        viewSwitch.onSelect = [this](int v)
+        {
+            processor.params.state.setProperty("advancedView", v == 1, nullptr);
+            processor.params.state.setProperty("hybridView", v == 2, nullptr);
+            applyView();
+        };
+        viewSwitch.setTooltip("SIMPLE: the main knobs. ADVANCED: every engine control. HYBRID: sample layers, envelopes and 808 character.");
+        for (auto* l : { &loadA, &loadB })
+        {
+            l->setLookAndFeel(&look);
+            l->setTooltip("Load your own sample (WAV, AIFF or FLAC). It is tuned to the note you play, like the built-in ones.");
+        }
+        loadA.onClick = [this] { chooseSample(0); };
+        loadB.onClick = [this] { chooseSample(1); };
+        selectorA.onLoadRequest = [this] { chooseSample(0); };
+        selectorB.onLoadRequest = [this] { chooseSample(1); };
+        selectorA.setTooltip("Layer A: the sample's character over the engine. Click for the list, arrows to step through it.");
+        selectorB.setTooltip("Layer B: a second sample for texture, a tail or an octave on top.");
+        waveA.setTooltip("Layer A's sample. The bright part is what you hear with the current Start and envelope.");
+        waveB.setTooltip("Layer B's sample and its fade.");
+        envelopeView.setTooltip("Engine and layers on one timeline: the key is held for 2.5 s, then released.");
+        track.setTooltip("Layer A follows the keys and slides. Off: it always plays at its own pitch (for noises and textures).");
+        invert.setTooltip("Flips Layer A's polarity.");
+        phaseLock.setTooltip("Starts the engine on the phase that lines up with Layer A's fundamental, so the two add up instead of cancelling.");
+        loadError.setFont(font(13.0f, Weight::semibold));
+        loadError.setColour(juce::Label::textColourId, palette::ember);
+        loadError.setJustificationType(juce::Justification::centredRight);
 
         driveMode.setTooltip("Drive flavour. TAPE: warm and round. TUBE: thick, adds even harmonics. HARD: aggressive clipping. FOLD: wavefolder growl.");
         glideMode.setTooltip("LEGATO: slide only when notes overlap. ALWAYS: slide into every note. OFF: no slides.");
@@ -102,15 +162,10 @@ public:
         retrigger.setTooltip("Every note gets a fresh punch, even when notes overlap and the pitch glides.");
         kickButton.setTooltip("Kick Lock: route your kick track into Epsilon 808's sidechain input. On every kick the 808 starts its cycle in phase\n"
                               "with the kick (so they add up instead of cancelling) and ducks for the Duck time.");
-        advanced.setTooltip("Show every control: body, envelope, effects, playing and Kick Lock.");
+
         abSwitch.onSelect = [this](int slot) { processor.selectSlot(slot); syncPreset(); };
         abSwitch.onCopy = [this] { processor.copyActiveSlotToOther(); };
         abSwitch.setTooltip("A/B: two complete settings to compare. Click A or B to switch; the arrow copies the active one to the other.");
-        advanced.onClick = [this]
-        {
-            processor.params.state.setProperty("advancedView", !showAdvanced(), nullptr);
-            applyView();
-        };
 
         const auto& specs = knobSpecs();
         knobs.resize(specs.size());
@@ -187,7 +242,7 @@ public:
         hub.onUpdate = nullptr;
         for (auto& knob : knobs)
             knob->setLookAndFeel(nullptr);
-        for (auto* button : { &previous, &next, &undo, &redo })
+        for (auto* button : { &previous, &next, &undo, &redo, &loadA, &loadB })
             button->setLookAndFeel(nullptr);
     }
 
@@ -255,7 +310,7 @@ public:
         g.setColour(palette::dim);
         g.drawText("v" JucePlugin_VersionString, 116, 22, 60, 18, juce::Justification::centredLeft);
 
-        if (!showAdvanced() && !browser.isVisible())
+        if (!showAdvanced() && !showHybrid() && !browser.isVisible())
         {
             g.setColour(palette::dim);
             g.setFont(font(13.5f, Weight::semibold));
@@ -263,6 +318,28 @@ public:
                 ? juce::String(juce::CharPointer_UTF8("PLAY: click the keys, or type A W S E D F G\xe2\x80\xa6  \xc2\xb7  Z / X change octave  \xc2\xb7  hold a note and press another to glide"))
                 : juce::String(juce::CharPointer_UTF8("PLAY: click the keys  \xc2\xb7  turn on KEYS (left) to play from your computer keyboard  \xc2\xb7  hold a note and press another to glide"));
             g.drawText(hint, 22, 650, getWidth() - 44, 18, juce::Justification::centred);
+            g.setColour(palette::layerA);
+            g.setFont(font(13.0f, Weight::bold));
+            g.drawText("LAYER", getWidth() / 2 - 170 - 70, 590, 60, 32, juce::Justification::centredRight);
+            g.setColour(palette::dim);
+            g.setFont(font(12.5f, Weight::semibold));
+            g.drawText("more on HYBRID", getWidth() / 2 + 180, 590, 140, 32, juce::Justification::centredLeft);
+        }
+        if (showHybrid() && !browser.isVisible())
+        {
+            g.setFont(font(13.0f, Weight::bold));
+            const auto heading = [&](const char* text, juce::Colour colour, int x0, int x1, int y)
+            {
+                g.setColour(colour);
+                g.drawText(text, x0, y, 160, 14, juce::Justification::centredLeft);
+                g.setColour(palette::edge);
+                g.drawHorizontalLine(y + 7, static_cast<float>(x0) + juce::GlyphArrangement::getStringWidth(g.getCurrentFont(), text) + 8.0f, static_cast<float>(x1));
+            };
+            heading("LAYER A", palette::layerA, 22, getWidth() - 22, hybridA);
+            heading("LAYER B", palette::layerB, 22, engineX - 14, hybridB);
+            heading("ENGINE", palette::magma, engineX, getWidth() - 22, hybridB);
+            heading("808 CHARACTER", palette::magma, 22, envX - 14, hybridC);
+            heading("ENVELOPES", palette::text, envX, getWidth() - 22, hybridC);
         }
         if (showAdvanced() && !browser.isVisible())
         {
@@ -303,8 +380,8 @@ public:
 
         // toggle row: spread evenly
         const int toggleY = 318;
-        std::array<juce::Component*, 5> row { &advanced, &driveMode, &glideMode, &kickButton, &clip };
-        std::array<int, 5> widths { 150, 250, 210, 170, 104 };
+        std::array<juce::Component*, 5> row { &viewSwitch, &driveMode, &glideMode, &kickButton, &clip };
+        std::array<int, 5> widths { 236, 226, 190, 170, 104 };
         int total = 0;
         for (auto w : widths) total += w;
         const auto gap = (width - 44 - total) / 4;
@@ -433,7 +510,30 @@ private:
         const int& octave;
     };
 
-    bool showAdvanced() const { return static_cast<bool>(processor.params.state.getProperty("advancedView", false)); }
+    bool showAdvanced() const { return static_cast<bool>(processor.params.state.getProperty("advancedView", false)) && !showHybrid(); }
+    bool showHybrid() const { return static_cast<bool>(processor.params.state.getProperty("hybridView", false)); }
+    int currentView() const { return showHybrid() ? 2 : showAdvanced() ? 1 : 0; }
+
+    void chooseSample(int slot)
+    {
+        chooser = std::make_unique<juce::FileChooser>(slot == 0 ? "Load a sample into Layer A" : "Load a sample into Layer B",
+                                                      lastFolder, "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                             [this, slot](const juce::FileChooser& fc)
+                             {
+                                 const auto file = fc.getResult();
+                                 if (file == juce::File())
+                                     return;
+                                 lastFolder = file.getParentDirectory();
+                                 juce::String error;
+                                 if (!processor.loadUserSample(slot, file, error))
+                                     loadError.setText(error, juce::dontSendNotification);
+                                 else
+                                     loadError.setText({}, juce::dontSendNotification);
+                                 selectorA.repaint();
+                                 selectorB.repaint();
+                             });
+    }
     bool computerKeys() const { return static_cast<bool>(processor.params.state.getProperty("computerKeys", false)); }
 
     void setComputerKeys(bool on)
@@ -488,17 +588,24 @@ private:
     void applyView()
     {
         const auto on = showAdvanced();
+        const auto hybrid = showHybrid();
         const auto browsing = browser.isVisible();
-        advanced.setToggleState(on, juce::dontSendNotification);
+        viewSwitch.setView(currentView());
         const auto& specs = knobSpecs();
         for (std::size_t index = 0; index < specs.size(); ++index)
         {
-            const auto visible = !browsing && (on || specs[index].simpleSlot >= 0);
+            const auto group = specs[index].group;
+            const auto hybridKnob = group >= layerA;
+            const auto visible = !browsing && (hybrid ? hybridKnob : !hybridKnob && (on || specs[index].simpleSlot >= 0));
             knobs[index]->setVisible(visible);
             labels[index]->setVisible(visible);
         }
         for (auto* c : std::initializer_list<juce::Component*> { &priority, &retrigger, &kickMode, &kickStatus })
             c->setVisible(on && !browsing);
+        for (auto* c : std::initializer_list<juce::Component*> { &selectorA, &selectorB, &loadA, &loadB, &waveA, &waveB, &envelopeView,
+                                                                &track, &invert, &phaseLock, &loadError })
+            c->setVisible(hybrid && !browsing);
+        selectorA.setVisible(!browsing && (hybrid || !on));   // Simple view gets the Layer A choice too
         layoutKnobs();
         repaint();
     }
@@ -522,9 +629,15 @@ private:
     {
         const auto width = getWidth();
         const auto& specs = knobSpecs();
+        if (showHybrid())
+        {
+            layoutHybrid();
+            return;
+        }
         if (!showAdvanced())
         {
-            // Seven big controls; Drive is the hero in the middle.
+            // Seven big controls; Drive is the hero in the middle. Under them, the Layer A choice.
+            selectorA.setBounds(width / 2 - 170, 590, 340, 32);
             const auto cell = (width - 44) / 7;
             for (std::size_t index = 0; index < specs.size(); ++index)
             {
@@ -586,6 +699,60 @@ private:
         kickStatus.setBounds(kickMode.getRight() + 12, rowThreeY + 18, width - 22 - kickMode.getRight() - 12, 40);
     }
 
+    // Hybrid page: row one Layer A (selector, waveform, 10 knobs), row two Layer B + Engine,
+    // row three 808 Character + the envelope view.
+    void layoutHybrid()
+    {
+        const auto width = getWidth();
+        const auto& specs = knobSpecs();
+        const int leftW = 290;
+        const int knobX = 22 + leftW + 14;
+        engineX = width - 22 - 2 * 84;
+        envX = width / 2 + 10;
+
+        // Layer A: selector + LOAD, waveform, Track / Invert / Phase Lock; ten knobs to the right
+        selectorA.setBounds(22, hybridA + 14, leftW - 70, 30);
+        loadA.setBounds(selectorA.getRight() + 6, hybridA + 14, 64, 30);
+        waveA.setBounds(22, hybridA + 48, leftW, 44);
+        track.setBounds(22, hybridA + 98, 82, 24);
+        invert.setBounds(track.getRight() + 6, hybridA + 98, 86, 24);
+        phaseLock.setBounds(invert.getRight() + 6, hybridA + 98, 22 + leftW - invert.getRight() - 6, 24);
+        // Layer B and the engine
+        selectorB.setBounds(22, hybridB + 14, leftW - 70, 30);
+        loadB.setBounds(selectorB.getRight() + 6, hybridB + 14, 64, 30);
+        waveB.setBounds(22, hybridB + 48, leftW, 30);
+        loadError.setBounds(22, hybridB + 80, leftW, 16);
+        // 808 character + envelopes
+        envelopeView.setBounds(envX, hybridC + 14, width - 22 - envX, 82);
+
+        const int rowOneCell = (width - 22 - knobX) / 10;
+        const int rowTwoCell = (engineX - 14 - knobX) / 6;
+        const int charCell = (envX - 14 - 22) / 5;
+        int counts[8] = {};
+        for (std::size_t index = 0; index < specs.size(); ++index)
+        {
+            const auto group = specs[index].group;
+            if (group < layerA)
+                continue;
+            const auto slot = counts[group]++;
+            auto& knob = *knobs[index];
+            auto& label = *labels[index];
+            int cell = 0, centreX = 0, top = 0;
+            if (group == layerA) { cell = rowOneCell; centreX = knobX + cell * slot + cell / 2; top = hybridA + 18; }
+            else if (group == layerB)
+            {
+                const auto isEngine = slot >= 6;
+                cell = isEngine ? 84 : rowTwoCell;
+                centreX = isEngine ? engineX + 84 * (slot - 6) + 42 : knobX + cell * slot + cell / 2;
+                top = hybridB + 16;
+            }
+            else { cell = charCell; centreX = 22 + cell * slot + cell / 2; top = hybridC + 16; }
+            styleKnob(index, false, cell, 18, 11.5f);
+            knob.setBounds(centreX - cell / 2, top, cell, 46 + 18);
+            label.setBounds(centreX - cell / 2 - 6, knob.getBottom(), cell + 12, 16);
+        }
+    }
+
     void step(int direction)
     {
         const auto list = processor.listPresets();
@@ -610,7 +777,7 @@ private:
     PillToggle clip, retrigger;
     PhoneButton phone;
     KickButton kickButton;
-    AdvancedButton advanced;
+    ViewSwitch viewSwitch;
     ABSwitch abSwitch;
     juce::MidiKeyboardComponent keyboard;
     int keyOctave = 1;   // computer keys start at C1
@@ -618,6 +785,16 @@ private:
     PresetBrowser browser;
     PresetButton presetButton;
     juce::Label kickStatus;
+    LayerSelector selectorA, selectorB;
+    LayerWave waveA, waveB;
+    EnvelopeView envelopeView;
+    PillToggle track, invert, phaseLock;
+    juce::TextButton loadA { "LOAD" }, loadB { "LOAD" };
+    juce::Label loadError;
+    std::unique_ptr<juce::FileChooser> chooser;
+    juce::File lastFolder { juce::File::getSpecialLocation(juce::File::userMusicDirectory) };
+    int engineX = 700, envX = 500;
+    static constexpr int hybridA = 346, hybridB = 476, hybridC = 572;
     std::vector<std::unique_ptr<juce::Slider>> knobs;
     std::vector<std::unique_ptr<juce::Label>> labels;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> attachments;

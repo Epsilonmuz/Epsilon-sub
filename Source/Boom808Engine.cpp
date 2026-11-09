@@ -282,14 +282,18 @@ void Engine::startLayers(Voice& v, const Settings& s) noexcept
     }
 }
 
-// The fundamental the layer plays for a given (tracked) pitch. Every sample plays at its own register
-// when you play C1, auto-tuned to its measured fundamental; it then follows the keys.
+// The fundamental the layer plays for a given (tracked) pitch. A sample plays at its own pitch, in its own
+// register, when you play its root note in the C1 octave (a C2 reese on C1 sounds an octave above the
+// engine, as recorded; a sample rooted on E plays naturally on E1), auto-tuned to its measured fundamental;
+// it then follows the keys.
 double Engine::layerHz(const Settings& s, int slot, double trackedSemis) const noexcept
 {
     const auto* sample = layerNow[static_cast<std::size_t>(slot)];
     const auto& L = s.layers[static_cast<std::size_t>(slot)];
     const auto nominal = 440.0 * std::pow(2.0, (sample->rootNote - 69.0) / 12.0);
-    const auto offset = L.track ? trackedSemis - 24.0 + L.tune : L.tune;
+    const auto pitchClass = std::fmod(std::fmod(static_cast<double>(sample->rootNote) - 24.0, 12.0) + 12.0, 12.0);
+    const auto reference = 24.0 + std::round(pitchClass);
+    const auto offset = L.track ? trackedSemis - reference + L.tune : L.tune;
     return nominal * std::pow(2.0, offset / 12.0);
 }
 
@@ -980,7 +984,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
         // Width: only content above 160 Hz is spread, so the sub stays mono and the mono sum is exact
         auto l = y, r = y;
         // the layers' own stereo (above 150 Hz, so the low end stays mono)
-        if (side != 0.0f || sideHp1.ic1 != 0.0f || sideHp2.ic1 != 0.0f)
+        if (std::abs(side) + std::abs(sideHp1.ic1) + std::abs(sideHp1.ic2) + std::abs(sideHp2.ic1) + std::abs(sideHp2.ic2) > 1.0e-12f)
         {
             const auto sd = svf(sideHp2, svf(sideHp1, side * headroom, gSide, butterworthK).high, gSide, butterworthK).high * glueGain;
             l += sd;

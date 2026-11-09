@@ -4,9 +4,46 @@
 
 ![Epsilon 808, Simple view](docs/epsilon-808-simple.png)
 
-Version 1.0.1. Built with JUCE 9.0.5, C++17. macOS 12+ (universal), Windows (VS2022). Engine tests, plugin bench and pluginval (strictness 8, with editor tests) pass on Linux. The release gate is a Mac build and an FL Studio session.
+Version 1.1.0. Built with JUCE 9.0.5, C++17. macOS 12+ (universal), Windows (VS2022). Engine tests, plugin bench and pluginval (strictness 8, with editor tests) pass on Linux. The release gate is a Mac build and an FL Studio session.
 
-## What's new in 1.0
+## What's new in 1.1: Hybrid
+
+![Hybrid view](docs/epsilon-808-hybrid.png)
+
+v1.0's presets were clean and tight, but every hit was identical and the body was a pure synth: it read as machine-made. 1.1 fixes that two ways.
+
+**1. Sample layers, blended with the engine.** Two layers sit on top of the engine (HYBRID page; Layer A is also on SIMPLE):
+
+| | |
+|---|---|
+| **Layer A** (character) | A sample's punch, grit and stereo. Level, Tune, Low Cut, Start, Width and its own envelope: Attack, Hold, Decay, Sustain, Release. Track (follow the keys and slides) and Invert. |
+| **Layer B** (texture) | A second sound for a tail, a texture or an octave on top: Level, Tune, Low Cut, Fade In, Length, Width. |
+| **Engine** | The synth body and click can be turned down to Off: the layers alone, still tuned and gliding. |
+| **Phase Lock** | On every note the engine starts on the phase that lines up with Layer A's fundamental once the punch settles. Engine + layer stay within 0.04 dB of a perfect sum at any sample phase; without it they cancel by up to 15 dB. **Phase** offsets it to taste. |
+| **Auto-tune** | Each built-in sound carries its measured fundamental, so a sample recorded 30 cents sharp still plays in tune. Your own samples are analysed when you load them. |
+| **Your samples** | LOAD (or "Load a sample..." in the list) takes WAV, AIFF or FLAC. The session remembers the file. |
+
+Layers play at 4x with cubic interpolation, follow note, glide and bend (not the punch), go through the drive with the engine, and keep their stereo above 150 Hz only, so the low end stays mono.
+
+**Built-in sounds (23):** 6 808s, 4 basses and 5 reeses (Cymatics "Orchid"), plus 8 **Fusions** made by combining them: Heavy Reese, Talking 808 (an 808 reshaped by a reese's vowels, by cross-synthesis), Glass Donk (the Donk through a slice of a reese), Frozen Whale (a reese frozen in time over an 808), Grit Stack (three basses phase-aligned and glued), Rum Stretch (the short Rum stretched 3x with its grit kept), Brooding Ring and Eternity Pluck (an endless reese forced into an 808's shape). `tools/make_fusions.py` builds them; `tools/make_layers.py` installs any set of sounds into the project.
+
+**2. 808 character, from how the TR-808 bass drum actually behaves:**
+
+| Control | What the hardware does | What it does here |
+|---|---|---|
+| **Snap** | For about 6 ms after the trigger, the bridged-T network rings more than an octave higher. Too short to hear as pitch; it is the crack of the hit. | +19 st for 5 ms, then a 1.5 ms fall. |
+| **Sigh** | Leakage in the retrigger path pulls the pitch down slowly over the first ~300 ms. | Up to +3 st, settling over ~300 ms; harder hits sigh more. |
+| **Vary** | Component tolerances (5-20%) and the trigger level make no two hits or units the same. | Per hit: level +-1.5 dB, length +-15%, punch +-12%, tone +-30%, +-5 cents. |
+| **Vel > Length** | Accent drives the circuit harder: louder *and* longer. | Soft hits up to 65% shorter. |
+| **Tone Decay** | On a driven 808 the harmonics fade before the body. | Tone's harmonics follow the envelope, so the tail goes darker. |
+
+Every factory preset now carries a light baseline of these (Snap 30, Sigh 25, Vary 20, Vel > Length 25, Tone Decay 25) unless it sets them itself; Pure Sine stays pure.
+
+**New presets (35):** Basic 808 (8, engine only, voiced from the research), Hybrid Trap (8), Hybrid Drill (5), Hybrid Dembow (6) and Game Changers (8: Layer Cake, Frozen Whale, Eternity Pluck, Brooding Ring, Drillbow, Talking Grit, and two engine-off sample instruments). All loudness-matched to the v1.0 set (docs/preset-audit.txt).
+
+> **About the Cymatics sounds.** The 15 Orchid samples, and the Fusions made from them, are built into this build for Edison's own productions. No licence file came with the pack, and most sample-pack licences allow use in music but not redistribution inside a product. Before selling or giving away Epsilon 808, replace them: put sounds you own or may redistribute in a folder with a `manifest.json` and run `tools/make_layers.py`, then rebuild. The engine and presets do not depend on which sounds are installed (presets name their layers; rename those to match).
+
+## What was new in 1.0
 
 | Feature | What it does |
 |---|---|
@@ -27,6 +64,8 @@ Version 1.0.1. Built with JUCE 9.0.5, C++17. macOS 12+ (universal), Windows (VS2
 - **Envelope.** Attack, Length (time to fall 60 dB), Sustain, Release, Glide, Bend (wheel range).
 - **Effects.** Drive with Tape / Tube / Hard / Fold, Drive Mix, Split, Cutoff, Resonance, Translate, Glue, Width, Output.
 - **Playing.** Vel > Punch, Vel > Drive, Note Priority, Retrigger, Glide mode (Legato / Always / Off).
+- **Hybrid.** Layer A (sound, Level, Tune, Low Cut, Start, Width, Attack, Hold, Decay, Sustain, Release, Track, Invert), Layer B (sound, Level, Tune, Low Cut, Fade In, Length, Width), Engine level, Phase Lock, Phase.
+- **808 Character.** Snap, Sigh, Vary, Vel > Length, Tone Decay.
 - **Kick Lock.** On/off pill (it says KICK LOCK: NO KICK until a kick arrives on the sidechain), Mode (Exact / Live), Duck.
 - **Monitoring.** Phone Check with the device menu (never saved in presets), A/B compare, undo/redo.
 
@@ -74,8 +113,12 @@ cmake -S . -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 cmake --build build --config Release --target Epsilon808_VST3 Epsilon808_AU
 ```
 
-**Engine tests** (no JUCE needed): `cmake --build build --target BoomEngineTests && ctest`, or
+**Engine tests** (no JUCE needed, 41 checks including the hybrid layers and 808 character): `cmake --build build --target BoomEngineTests && ctest`, or
 `g++ -O3 -std=c++17 -ISource Tests/EngineTests.cpp Source/Boom808Engine.cpp && ./a.out`.
+
+**Plugin bench** (real processor: every preset's loudness, layers decode, user samples, state, editor snapshots):
+`cmake -S . -B build -DE808_BUILD_BENCH=ON && cmake --build build --target PluginBench && ./build/PluginBench_artefacts/Release/PluginBench`
+(`--snap docs` renders the three views to PNG).
 
 CI (`.github/workflows/build.yml`, manual or on `v*` tags) builds universal VST3 + AU on macOS and runs the engine tests, auval (`aumu E808 EpsS`) and pluginval.
 

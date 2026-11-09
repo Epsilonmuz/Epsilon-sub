@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="B808Ep" name="Epsilon 808" projectType="audioplug" version="1.0.1"
+<JUCERPROJECT id="B808Ep" name="Epsilon 808" projectType="audioplug" version="1.1.0"
               companyName="Epsilon Sounds" bundleIdentifier="com.epsilonsounds.e808"
               pluginName="Epsilon 808" pluginDesc="808 and sub bass instrument"
               pluginManufacturer="Epsilon Sounds" pluginManufacturerCode="EpsS"
@@ -18,12 +18,40 @@
       <FILE id="B8Ed02" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
       <FILE id="B8Pr01" name="PluginProcessor.cpp" compile="1" resource="0" file="Source/PluginProcessor.cpp"/>
       <FILE id="B8Pr02" name="PluginProcessor.h" compile="0" resource="0" file="Source/PluginProcessor.h"/>
+      <FILE id="B8LyLb" name="LayerLibrary.h" compile="0" resource="0" file="Source/LayerLibrary.h"/>
+      <FILE id="B8LyBk" name="LayerBank.h" compile="0" resource="0" file="Source/LayerBank.h"/>
+      <FILE id="B8HyUi" name="HybridUI.h" compile="0" resource="0" file="Source/HybridUI.h"/>
     </GROUP>
     <GROUP id="B8grRs" name="Resources">
       <FILE id="B8Fn01" name="BarlowSemiCondensed-Medium.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Medium.ttf"/>
       <FILE id="B8Fn02" name="BarlowSemiCondensed-SemiBold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-SemiBold.ttf"/>
       <FILE id="B8Fn03" name="BarlowSemiCondensed-Bold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Bold.ttf"/>
       <FILE id="B8Fn04" name="Barlow-OFL.txt" compile="0" resource="0" file="Resources/Barlow-OFL.txt"/>
+      <GROUP id="B8grLy" name="Layers">
+        <FILE id="B8Ly00" name="Layer_808_Cyclical.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Cyclical.flac"/>
+        <FILE id="B8Ly01" name="Layer_808_Heavyweight.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Heavyweight.flac"/>
+        <FILE id="B8Ly02" name="Layer_808_Offset.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Offset.flac"/>
+        <FILE id="B8Ly03" name="Layer_808_Rum.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Rum.flac"/>
+        <FILE id="B8Ly04" name="Layer_808_Short.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Short.flac"/>
+        <FILE id="B8Ly05" name="Layer_808_Standard.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Standard.flac"/>
+        <FILE id="B8Ly06" name="Layer_Bass_Brooding.flac" compile="0" resource="1" file="Resources/Layers/Layer_Bass_Brooding.flac"/>
+        <FILE id="B8Ly07" name="Layer_Bass_Perfect_Donk.flac" compile="0" resource="1" file="Resources/Layers/Layer_Bass_Perfect_Donk.flac"/>
+        <FILE id="B8Ly08" name="Layer_Bass_Reaper.flac" compile="0" resource="1" file="Resources/Layers/Layer_Bass_Reaper.flac"/>
+        <FILE id="B8Ly09" name="Layer_Bass_Unstable.flac" compile="0" resource="1" file="Resources/Layers/Layer_Bass_Unstable.flac"/>
+        <FILE id="B8Ly10" name="Layer_Reese_Eternity.flac" compile="0" resource="1" file="Resources/Layers/Layer_Reese_Eternity.flac"/>
+        <FILE id="B8Ly11" name="Layer_Reese_Faith.flac" compile="0" resource="1" file="Resources/Layers/Layer_Reese_Faith.flac"/>
+        <FILE id="B8Ly12" name="Layer_Reese_Punchy.flac" compile="0" resource="1" file="Resources/Layers/Layer_Reese_Punchy.flac"/>
+        <FILE id="B8Ly13" name="Layer_Reese_Toronto.flac" compile="0" resource="1" file="Resources/Layers/Layer_Reese_Toronto.flac"/>
+        <FILE id="B8Ly14" name="Layer_Reese_Whale.flac" compile="0" resource="1" file="Resources/Layers/Layer_Reese_Whale.flac"/>
+        <FILE id="B8Ly15" name="Layer_Fusion_Heavy_Reese.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Heavy_Reese.flac"/>
+        <FILE id="B8Ly16" name="Layer_Fusion_Talking_808.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Talking_808.flac"/>
+        <FILE id="B8Ly17" name="Layer_Fusion_Glass_Donk.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Glass_Donk.flac"/>
+        <FILE id="B8Ly18" name="Layer_Fusion_Frozen_Whale.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Frozen_Whale.flac"/>
+        <FILE id="B8Ly19" name="Layer_Fusion_Grit_Stack.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Grit_Stack.flac"/>
+        <FILE id="B8Ly20" name="Layer_Fusion_Rum_Stretch.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Rum_Stretch.flac"/>
+        <FILE id="B8Ly21" name="Layer_Fusion_Brooding_Ring.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Brooding_Ring.flac"/>
+        <FILE id="B8Ly22" name="Layer_Fusion_Eternity_Pluck.flac" compile="0" resource="1" file="Resources/Layers/Layer_Fusion_Eternity_Pluck.flac"/>
+      </GROUP>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

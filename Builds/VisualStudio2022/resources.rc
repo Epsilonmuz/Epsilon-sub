@@ -18,9 +18,9 @@ BEGIN
     BEGIN
       VALUE "CompanyName",  "Epsilon Sounds\0"
       VALUE "FileDescription",  "Epsilon 808\0"
-      VALUE "FileVersion",  "1.0.1\0"
+      VALUE "FileVersion",  "1.1.0\0"
       VALUE "ProductName",  "Epsilon 808\0"
-      VALUE "ProductVersion",  "1.0.1\0"
+      VALUE "ProductVersion",  "1.1.0\0"
     END
   END
 

@@ -39,6 +39,6 @@
 [PASS] Vary: 8 hits spread 3.47 dB at 100% (0.000 dB at 0%)
 [PASS] Vel > Length: -40 dB after 1.02 s at full velocity, 0.56 s at 30%
 [PASS] Tone Decay: 2nd harmonic vs body changes -39.1 dB over the tail (0.0 dB with Tone Decay off)
-   CPU: 4.81% of one core at 48 kHz, all effects on
+   CPU: 4.91% of one core at 48 kHz, all effects on
 
 0 failure(s)

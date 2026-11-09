@@ -7,3 +7,8 @@ Builds/VisualStudio2022/x64/
 .DS_Store
 *.xcuserstate
 xcuserdata/
+
+# Cymatics "Orchid" sounds and the Fusions made from them: not for a public repository (licence).
+# The Projucer package carries them; JuceLibraryCode/BinaryData.* is committed with the fonts only.
+/Resources/Layers/
+/build-*/

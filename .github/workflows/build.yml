@@ -1,9 +1,10 @@
 name: Build Epsilon 808 (macOS)
 
-# Manual or on version tags only, to save macOS minutes on a private repository.
+# Public repository: macOS minutes are free, so every push to main builds and tests too.
 on:
   workflow_dispatch:
   push:
+    branches: [ main ]
     tags: [ 'v*' ]
 
 jobs:
@@ -48,7 +49,7 @@ jobs:
           cp -R "$(find build -type d -name 'Epsilon 808.vst3' | head -1)" out/
           cp -R "$(find build -type d -name 'Epsilon 808.component' | head -1)" out/
           cat > out/INSTALL.txt <<'TXT'
-          Epsilon 808 v1.0.1 (unsigned test build)
+          Epsilon 808 v1.1.0 (unsigned test build)
           1. Copy "Epsilon 808.vst3" to ~/Library/Audio/Plug-Ins/VST3/
              and "Epsilon 808.component" to ~/Library/Audio/Plug-Ins/Components/
           2. This build is not notarised. Remove the download quarantine in Terminal:
@@ -59,5 +60,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Epsilon-808-v1.0.1-macOS
+          name: Epsilon-808-v1.1.0-macOS
           path: out

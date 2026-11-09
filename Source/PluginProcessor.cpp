@@ -10,13 +10,16 @@ constexpr float splitOff = 50.0f;   // the Split knob's lowest position means Of
 
 const std::vector<BoomPreset>& Epsilon808AudioProcessor::factoryPresets()
 {
+    const auto L = [](const char* name) { return static_cast<float>(layerIndexOf(name)); };
     static const std::vector<BoomPreset> list {
         // Every factory preset is loudness-matched to about -13.5 LUFS (gated, BS.1770) on a 4-bar test phrase,
-        // so switching presets compares sounds, not levels.
+        // so switching presets compares sounds, not levels. Factory presets also get the v1.1 808 character
+        // baseline (characterBaseline() below) unless they set those controls themselves.
+
         // Clean
         { "Init 808", "Clean", "A clean, punchy 808. Start here.", {  } },
         { "Clean Sub", "Clean", "Almost a pure sine. For R&B, ballads and big systems.", { { "punch", 4 }, { "tone", 0 }, { "drive", 0 }, { "click", 0 }, { "glue", 20 }, { "length", 5000 }, { "sustain", 60 }, { "analog", 10 }, { "translate", 25 }, { "output", -2.5 } } },
-        { "Pure Sine", "Clean", "Nothing added. Layer it under another bass.", { { "punch", 0 }, { "tone", 0 }, { "click", 0 }, { "drive", 0 }, { "glue", 0 }, { "sustain", 100 }, { "length", 8000 }, { "release", 200 }, { "output", -3 } } },
+        { "Pure Sine", "Clean", "Nothing added. Layer it under another bass.", { { "punch", 0 }, { "tone", 0 }, { "click", 0 }, { "drive", 0 }, { "glue", 0 }, { "sustain", 100 }, { "length", 8000 }, { "release", 200 }, { "snap", 0 }, { "sigh", 0 }, { "vary", 0 }, { "velLength", 0 }, { "toneDecay", 0 }, { "output", -3 } } },
         { "Soft Boom", "Clean", "Round and warm, no knock. Sits under vocals.", { { "punch", 5 }, { "punchTime", 80 }, { "attack", 6 }, { "tone", 10 }, { "click", 0 }, { "drive", 2 }, { "length", 4000 }, { "analog", 40 }, { "glue", 25 }, { "translate", 25 }, { "output", -1 } } },
         { "R&B Sub", "Clean", "Smooth sustained sub with gentle slides.", { { "punch", 3 }, { "tone", 10 }, { "click", 5 }, { "drive", 3 }, { "glue", 30 }, { "length", 3500 }, { "sustain", 40 }, { "glide", 120 }, { "analog", 25 }, { "translate", 30 }, { "output", -1.5 } } },
         // Trap
@@ -63,13 +66,73 @@ const std::vector<BoomPreset>& Epsilon808AudioProcessor::factoryPresets()
         // Mix Ready
         { "Phone Ready", "Mix Ready", "Built to be heard on phone speakers.", { { "translate", 80 }, { "drive", 12 }, { "tone", 35 }, { "click", 30 }, { "split", 100 }, { "glue", 40 }, { "output", 2.5 } } },
         { "Heard Everywhere", "Mix Ready", "Balanced for phones, laptops and clubs.", { { "translate", 65 }, { "split", 100 }, { "drive", 10 }, { "glue", 45 }, { "tone", 25 }, { "analog", 10 }, { "output", 3 } } },
+
+        // ---- v1.1 (appended so host program numbers of v1.0 presets stay the same)
+        // Basic 808: the engine alone, voiced from how the TR-808 bass drum behaves: a ~6 ms attack shift (Snap),
+        // a slow pitch settle (Sigh), every hit a little different (Vary), accents ring longer (Vel > Length),
+        // harmonics that fade before the body (Tone Decay).
+        { "808 Classic", "Basic 808", "The hardware 808: snap, a slow sigh, every hit slightly different.", { { "punch", 6 }, { "punchTime", 25 }, { "snap", 60 }, { "sigh", 55 }, { "vary", 35 }, { "velLength", 60 }, { "length", 1900 }, { "tone", 12 }, { "toneDecay", 45 }, { "click", 18 }, { "drive", 4 }, { "analog", 30 }, { "glue", 20 }, { "translate", 25 }, { "output", -0.4 } } },
+        { "808 Long Decay", "Basic 808", "The long-decay mod: a tail that rings for bars.", { { "punch", 7 }, { "punchTime", 30 }, { "snap", 50 }, { "sigh", 60 }, { "vary", 30 }, { "velLength", 40 }, { "length", 5800 }, { "release", 300 }, { "tone", 10 }, { "toneDecay", 55 }, { "click", 12 }, { "drive", 5 }, { "analog", 35 }, { "glue", 25 }, { "translate", 30 }, { "output", -2.4 } } },
+        { "808 Short Tight", "Basic 808", "Short and tight with the circuit's snap.", { { "punch", 9 }, { "punchTime", 22 }, { "snap", 70 }, { "sigh", 35 }, { "vary", 30 }, { "velLength", 40 }, { "length", 480 }, { "click", 30 }, { "drive", 8 }, { "glue", 45 }, { "translate", 25 }, { "output", 3.9 } } },
+        { "808 Accent Boom", "Basic 808", "Play with velocity: accents hit harder, sigh more and ring longer.", { { "punch", 10 }, { "punchTime", 35 }, { "snap", 55 }, { "sigh", 70 }, { "vary", 30 }, { "velLength", 85 }, { "velPunch", 55 }, { "velDrive", 30 }, { "length", 2700 }, { "tone", 15 }, { "toneDecay", 40 }, { "drive", 8 }, { "driveMode", 1 }, { "split", 90 }, { "glue", 30 }, { "translate", 30 }, { "output", 0.9 } } },
+        { "808 Tuned Bass", "Basic 808", "Holds while you play, for melodic bass lines.", { { "punch", 8 }, { "snap", 40 }, { "sigh", 30 }, { "vary", 20 }, { "length", 3200 }, { "sustain", 35 }, { "glide", 110 }, { "tone", 18 }, { "toneDecay", 50 }, { "drive", 6 }, { "analog", 20 }, { "glue", 30 }, { "translate", 35 }, { "output", -2.1 } } },
+        { "808 Warm Tape", "Basic 808", "Tape warmth that darkens as the note fades.", { { "punch", 9 }, { "snap", 45 }, { "sigh", 45 }, { "vary", 35 }, { "velLength", 40 }, { "length", 2600 }, { "tone", 25 }, { "toneDecay", 65 }, { "drive", 12 }, { "split", 90 }, { "analog", 40 }, { "glue", 30 }, { "translate", 30 }, { "output", 0.7 } } },
+        { "808 Driven", "Basic 808", "Tube-driven 808 with a clean sub and a live feel.", { { "punch", 11 }, { "snap", 50 }, { "sigh", 40 }, { "vary", 30 }, { "velLength", 40 }, { "length", 2400 }, { "tone", 25 }, { "toneDecay", 30 }, { "drive", 20 }, { "driveMode", 1 }, { "split", 100 }, { "glue", 35 }, { "translate", 40 }, { "output", 0.3 } } },
+        { "808 Sine Snap", "Basic 808", "A clean sine with only the circuit's snap and sigh.", { { "punch", 3 }, { "snap", 65 }, { "sigh", 50 }, { "vary", 15 }, { "tone", 0 }, { "click", 0 }, { "drive", 0 }, { "glue", 15 }, { "length", 3000 }, { "translate", 20 }, { "output", -0.6 } } },
+
+        // Hybrid Trap: a Cymatics layer (A) for character, the engine for the in-tune sub and the slides.
+        { "Heavyweight Hybrid", "Hybrid Trap", "The Heavyweight 808 locked in phase with the engine. Plays in tune on every key.", { { "layerA", L("808 Heavyweight") }, { "layerALevel", -2 }, { "punch", 10 }, { "snap", 40 }, { "sigh", 35 }, { "vary", 25 }, { "length", 2600 }, { "glide", 110 }, { "drive", 6 }, { "translate", 30 }, { "glue", 30 }, { "output", -4 } } },
+        { "Glass Top Boom", "Hybrid Trap", "Faith reese shimmer on top of a long clean sub.", { { "layerA", L("Reese Faith") }, { "layerALowCut", 140 }, { "layerADecay", 2800 }, { "layerAWidth", 75 }, { "layerALevel", -4 }, { "punch", 10 }, { "length", 3200 }, { "sigh", 40 }, { "vary", 20 }, { "tone", 15 }, { "translate", 25 }, { "glue", 30 }, { "output", -1.3 } } },
+        { "Thick Standard", "Hybrid Trap", "Standard 808 grit above a warm, tube-driven engine.", { { "layerA", L("808 Standard") }, { "layerALowCut", 100 }, { "punch", 10 }, { "length", 2100 }, { "tone", 20 }, { "toneDecay", 40 }, { "drive", 9 }, { "driveMode", 1 }, { "split", 90 }, { "snap", 35 }, { "sigh", 35 }, { "vary", 25 }, { "translate", 30 }, { "glue", 35 }, { "output", 1.4 } } },
+        { "Cyclical Phone Killer", "Hybrid Trap", "Cyclical 808 plus Translate: follows on any phone speaker.", { { "layerA", L("808 Cyclical") }, { "layerALowCut", 110 }, { "punch", 9 }, { "length", 2600 }, { "drive", 14 }, { "split", 100 }, { "translate", 60 }, { "snap", 35 }, { "vary", 25 }, { "glue", 35 }, { "output", -1.3 } } },
+        { "Octave Ghost", "Hybrid Trap", "Offset 808, with the Faith reese fading in an octave up.", { { "layerA", L("808 Offset") }, { "layerALevel", -2 }, { "layerB", L("Reese Faith") }, { "layerBAttack", 380 }, { "layerBLevel", -9 }, { "layerBLowCut", 150 }, { "layerBWidth", 80 }, { "punch", 9 }, { "length", 3000 }, { "sigh", 40 }, { "vary", 25 }, { "translate", 25 }, { "glue", 30 }, { "output", -3.4 } } },
+        { "Eternity Pad 808", "Hybrid Trap", "A long airy reese wash over a deep sub.", { { "layerA", L("Reese Eternity") }, { "layerALowCut", 160 }, { "layerADecay", 3400 }, { "layerALevel", -3 }, { "layerAWidth", 85 }, { "punch", 10 }, { "length", 3600 }, { "click", 20 }, { "sigh", 40 }, { "translate", 20 }, { "glue", 30 }, { "output", -1.6 } } },
+        { "Heavy Reese", "Hybrid Trap", "Fusion: the Heavyweight front with the Toronto reese growling inside its tail.", { { "layerA", L("Fusion Heavy Reese") }, { "layerALevel", -2 }, { "punch", 8 }, { "length", 3000 }, { "glide", 120 }, { "drive", 6 }, { "driveMode", 1 }, { "split", 90 }, { "sigh", 35 }, { "vary", 25 }, { "translate", 25 }, { "glue", 35 }, { "output", -1.6 } } },
+        { "Talking 808", "Hybrid Trap", "Fusion: an 808 shaped by a reese's vowels. It talks as it rings.", { { "layerA", L("Fusion Talking 808") }, { "layerALowCut", 100 }, { "punch", 9 }, { "length", 2600 }, { "drive", 8 }, { "driveMode", 1 }, { "split", 100 }, { "sigh", 40 }, { "vary", 25 }, { "translate", 30 }, { "glue", 35 }, { "output", 1.8 } } },
+
+        // Hybrid Drill
+        { "UK Slide Hybrid", "Hybrid Drill", "Heavyweight 808 that slides on every note; low note wins.", { { "layerA", L("808 Heavyweight") }, { "layerALevel", -2 }, { "glide", 220 }, { "glideMode", 1 }, { "priority", 1 }, { "retrigger", 1 }, { "punch", 6 }, { "length", 2400 }, { "drive", 14 }, { "driveMode", 2 }, { "split", 110 }, { "snap", 35 }, { "vary", 25 }, { "translate", 45 }, { "glue", 40 }, { "output", -2.4 } } },
+        { "Dark Reese Drill", "Hybrid Drill", "Toronto reese growl over a sliding sub.", { { "layerA", L("Reese Toronto") }, { "layerALowCut", 150 }, { "layerADecay", 3000 }, { "layerAWidth", 70 }, { "glide", 200 }, { "glideMode", 1 }, { "punch", 6 }, { "length", 3000 }, { "click", 25 }, { "drive", 8 }, { "driveMode", 1 }, { "split", 110 }, { "translate", 35 }, { "glue", 35 }, { "output", 1.2 } } },
+        { "NY Grit Slide", "Hybrid Drill", "Fusion Grit Stack: three basses glued into one, knocking on every slide.", { { "layerA", L("Fusion Grit Stack") }, { "layerALevel", -2 }, { "glide", 180 }, { "glideMode", 1 }, { "retrigger", 1 }, { "punch", 8 }, { "length", 2000 }, { "drive", 16 }, { "driveMode", 1 }, { "split", 100 }, { "snap", 40 }, { "vary", 30 }, { "translate", 50 }, { "glue", 45 }, { "output", -0.3 } } },
+        { "Whale Slide", "Hybrid Drill", "Whale reese sinking under long slides.", { { "layerA", L("Reese Whale") }, { "layerALowCut", 150 }, { "layerADecay", 2500 }, { "layerAWidth", 70 }, { "layerALevel", 2 }, { "glide", 300 }, { "glideMode", 1 }, { "punch", 6 }, { "length", 2600 }, { "translate", 30 }, { "glue", 35 }, { "output", -0.4 } } },
+        { "Rum Stretch Drill", "Hybrid Drill", "Fusion: the short Rum 808 stretched into a long gritty tail.", { { "layerA", L("Fusion Rum Stretch") }, { "glide", 160 }, { "glideMode", 1 }, { "retrigger", 1 }, { "priority", 1 }, { "punch", 8 }, { "length", 2600 }, { "drive", 12 }, { "driveMode", 2 }, { "split", 100 }, { "snap", 40 }, { "vary", 30 }, { "translate", 40 }, { "glue", 40 }, { "output", -0.5 } } },
+
+        // Hybrid Dembow: short, bouncy, sits with a four-on-the-floor kick
+        { "Donk Pop", "Hybrid Dembow", "The Perfect Donk bass on a tight engine thump.", { { "layerA", L("Bass Perfect Donk") }, { "layerALowCut", 90 }, { "layerALevel", 1 }, { "punch", 16 }, { "punchTime", 20 }, { "length", 700 }, { "snap", 50 }, { "vary", 30 }, { "drive", 8 }, { "driveMode", 1 }, { "glue", 45 }, { "translate", 35 }, { "output", 0.8 } } },
+        { "Perreo Thump", "Hybrid Dembow", "Tight thump that pairs with the dembow kick.", { { "layerA", L("808 Short") }, { "layerALowCut", 110 }, { "punch", 16 }, { "punchTime", 20 }, { "length", 600 }, { "click", 40 }, { "snap", 60 }, { "vary", 30 }, { "velLength", 40 }, { "drive", 10 }, { "driveMode", 1 }, { "glue", 50 }, { "translate", 35 }, { "output", 2.6 } } },
+        { "Glass Donk", "Hybrid Dembow", "Fusion: the Donk played through a slice of the Eternity reese.", { { "layerA", L("Fusion Glass Donk") }, { "layerALevel", 1 }, { "punch", 12 }, { "length", 900 }, { "snap", 40 }, { "vary", 30 }, { "glue", 40 }, { "translate", 30 }, { "output", 0 } } },
+        { "Reggaeton Round", "Hybrid Dembow", "Round bass with an 808 front.", { { "layerA", L("808 Offset") }, { "layerADecay", 180 }, { "layerALowCut", 80 }, { "punch", 12 }, { "punchTime", 25 }, { "length", 1100 }, { "tone", 0 }, { "cutoff", 900 }, { "sigh", 30 }, { "vary", 30 }, { "glue", 40 }, { "translate", 25 }, { "output", 1.8 } } },
+        { "Moombah Reese", "Hybrid Dembow", "A short reese bite for moombah and dembow.", { { "layerA", L("Reese Faith") }, { "layerALowCut", 140 }, { "layerADecay", 1000 }, { "layerAWidth", 70 }, { "punch", 12 }, { "length", 1000 }, { "drive", 6 }, { "driveMode", 1 }, { "vary", 30 }, { "glue", 40 }, { "translate", 30 }, { "output", 2.7 } } },
+        { "Brooding Bounce", "Hybrid Dembow", "Wide Brooding bass, short and bouncy.", { { "layerA", L("Bass Brooding") }, { "layerALowCut", 140 }, { "layerADecay", 1400 }, { "layerAWidth", 80 }, { "punch", 12 }, { "length", 1300 }, { "vary", 30 }, { "glue", 40 }, { "translate", 25 }, { "output", 1 } } },
+
+        // Game Changers: sounds that only exist in Epsilon 808
+        { "Layer Cake", "Game Changers", "The Heavyweight 808 hands its tail to the Punchy reese.", { { "layerA", L("808 Heavyweight") }, { "layerADecay", 160 }, { "layerB", L("Reese Punchy") }, { "layerBAttack", 60 }, { "layerBDecay", 2600 }, { "layerBLowCut", 140 }, { "layerBLevel", -4 }, { "layerBWidth", 75 }, { "punch", 10 }, { "length", 2800 }, { "drive", 6 }, { "driveMode", 1 }, { "split", 100 }, { "sigh", 35 }, { "translate", 25 }, { "glue", 35 }, { "output", 1.5 } } },
+        { "Frozen Whale", "Game Changers", "Fusion: the Whale reese frozen in time over an 808.", { { "layerA", L("Fusion Frozen Whale") }, { "layerALevel", -1 }, { "layerAWidth", 90 }, { "punch", 8 }, { "length", 3200 }, { "sigh", 40 }, { "glide", 140 }, { "translate", 20 }, { "glue", 30 }, { "output", -3.6 } } },
+        { "Eternity Pluck", "Game Changers", "Fusion: an endless reese forced into the shape of an 808.", { { "layerA", L("Fusion Eternity Pluck") }, { "layerALowCut", 90 }, { "punch", 9 }, { "length", 2600 }, { "drive", 6 }, { "driveMode", 1 }, { "sigh", 40 }, { "vary", 25 }, { "translate", 25 }, { "glue", 30 }, { "output", 0.1 } } },
+        { "Brooding Ring", "Game Changers", "Fusion: the Brooding bass ring-modulated into metal over a clean sub.", { { "layerA", L("Fusion Brooding Ring") }, { "layerALowCut", 130 }, { "layerADecay", 2200 }, { "layerAWidth", 80 }, { "layerALevel", -3 }, { "punch", 10 }, { "length", 2400 }, { "translate", 20 }, { "glue", 35 }, { "output", -0.3 } } },
+        { "Drillbow", "Game Changers", "Drill slides in a dembow pocket: short, sliding, knocking on every note.", { { "layerA", L("808 Heavyweight") }, { "layerADecay", 900 }, { "glide", 110 }, { "glideMode", 1 }, { "retrigger", 1 }, { "punch", 10 }, { "punchTime", 25 }, { "length", 900 }, { "snap", 55 }, { "vary", 30 }, { "drive", 14 }, { "driveMode", 1 }, { "split", 100 }, { "translate", 40 }, { "glue", 45 }, { "output", 2.1 } } },
+        { "Talking Grit", "Game Changers", "Two fusions stacked and filtered: a vocal growl that slides.", { { "layerA", L("Fusion Talking 808") }, { "layerALowCut", 100 }, { "layerB", L("Fusion Grit Stack") }, { "layerBLowCut", 200 }, { "layerBLevel", -6 }, { "glide", 160 }, { "glideMode", 1 }, { "punch", 8 }, { "length", 2400 }, { "drive", 14 }, { "driveMode", 3 }, { "driveMix", 60 }, { "cutoff", 2200 }, { "resonance", 30 }, { "split", 110 }, { "translate", 35 }, { "glue", 40 }, { "output", 1.4 } } },
+        { "Sample Only Heavyweight", "Game Changers", "Engine off: the Heavyweight 808 itself, auto-tuned on every key and sliding.", { { "layerA", L("808 Heavyweight") }, { "engine", -48 }, { "glide", 120 }, { "punch", 0 }, { "translate", 25 }, { "glue", 25 }, { "output", -4.7 } } },
+        { "Grit Stack Raw", "Game Changers", "Engine off: the Grit Stack fusion, playable and in tune.", { { "layerA", L("Fusion Grit Stack") }, { "engine", -48 }, { "glide", 150 }, { "glideMode", 1 }, { "translate", 30 }, { "glue", 35 }, { "output", -2.4 } } },
     };
     return list;
 }
 
+// v1.1: what makes a hardware 808 feel alive, applied lightly to every factory preset (a preset that sets
+// one of these keeps its own value). Snap: the bridged-T's ~6 ms attack shift; Sigh: the slow settle;
+// Vary: per-hit tolerances; Vel > Length: accents ring longer; Tone Decay: harmonics fade before the body.
+const std::vector<std::pair<const char*, float>>& Epsilon808AudioProcessor::characterBaseline()
+{
+    static const std::vector<std::pair<const char*, float>> baseline {
+        { "snap", 30 }, { "sigh", 25 }, { "vary", 20 }, { "velLength", 25 }, { "toneDecay", 25 }
+    };
+    return baseline;
+}
+
 juce::StringArray Epsilon808AudioProcessor::categories()
 {
-    return { "Trap", "Drill", "Clean", "Distorted", "Short", "Melodic", "Log Drum", "Wide", "Mix Ready" };
+    return { "Basic 808", "Hybrid Trap", "Hybrid Drill", "Hybrid Dembow", "Game Changers",
+             "Trap", "Drill", "Clean", "Distorted", "Short", "Melodic", "Log Drum", "Wide", "Mix Ready" };
 }
 
 juce::File Epsilon808AudioProcessor::userPresetFolder()
@@ -139,6 +202,42 @@ juce::AudioProcessorValueTreeState::ParameterLayout Epsilon808AudioProcessor::ma
     choice("kickMode", "Kick Lock Mode", { "Exact", "Live" }, 0);
     add("duck", "Duck", { 0.0f, 150.0f }, 60.0f, ms);
     choice("phoneModel", "Phone Check Device", { "Phone", "Laptop", "Earbuds", "Car" }, 0);
+
+    // v1.1 parameters: hybrid layers and 808 character (appended, so v1.0 sessions and A/B slots still load)
+    const auto db = text([](float v) { return v <= -35.5f ? juce::String("-inf") : (v > 0 ? "+" : "") + juce::String(v, 1) + " dB"; });
+    const auto st = text([](float v) { return (v > 0 ? "+" : "") + juce::String(juce::roundToInt(v)) + " st"; });
+    const auto cut = text([](float v) { return v <= 20.5f ? juce::String("Off") : hzText(v); });
+    const auto natural = text([](float v) { return v >= 9999.0f ? juce::String("Natural") : msText(v); });
+    for (int slot = 0; slot < 2; ++slot)
+    {
+        const juce::String X = slot == 0 ? "A" : "B";
+        const auto id = [&](const char* suffix) { return ("layer" + X + suffix); };
+        const auto name = [&](const char* suffix) { return ("Layer " + X + " " + suffix); };
+        layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { id(""), 1 }, "Layer " + X, layerChoices(slot), 0));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("Level"), 1 }, name("Level"), juce::NormalisableRange<float> { -36.0f, 12.0f }, slot == 0 ? 0.0f : -6.0f, db));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("Tune"), 1 }, name("Tune"), juce::NormalisableRange<float> { -24.0f, 24.0f, 1.0f }, 0.0f, st));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("LowCut"), 1 }, name("Low Cut"), skewed(20.0f, 1000.0f, 150.0f), slot == 0 ? 20.0f : 150.0f, cut));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("Attack"), 1 }, name(slot == 0 ? "Attack" : "Fade In"), skewed(0.5f, 1500.0f, 30.0f), 0.5f, ms));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("Decay"), 1 }, name(slot == 0 ? "Decay" : "Length"), skewed(20.0f, 10000.0f, 900.0f), 10000.0f, natural));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID { id("Width"), 1 }, name("Width"), juce::NormalisableRange<float> { 0.0f, 100.0f }, 60.0f, percent));
+        if (slot == 0)
+        {
+            add("layerAStart", "Layer A Start", skewed(0.0f, 500.0f, 60.0f), 0.0f, ms);
+            add("layerAHold", "Layer A Hold", skewed(0.0f, 2000.0f, 200.0f), 0.0f, ms);
+            add("layerASustain", "Layer A Sustain", { 0.0f, 100.0f }, 0.0f, percent);
+            add("layerARelease", "Layer Release", skewed(5.0f, 3000.0f, 200.0f), 150.0f, ms);
+            layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { "layerATrack", 1 }, "Layer A Pitch Track", true));
+            layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { "layerAInvert", 1 }, "Layer A Invert", false));
+        }
+    }
+    add("engine", "Engine Level", { -48.0f, 6.0f }, 0.0f, text([](float v) { return v <= -47.5f ? juce::String("Off") : (v > 0 ? "+" : "") + juce::String(v, 1) + " dB"; }));
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID { "phaseLock", 1 }, "Phase Lock", true));
+    add("phaseShift", "Phase Shift", { -180.0f, 180.0f }, 0.0f, text([](float v) { return (v > 0 ? "+" : "") + juce::String(juce::roundToInt(v)) + juce::String(juce::CharPointer_UTF8("\xc2\xb0")); }));
+    add("snap", "Snap", { 0.0f, 100.0f }, 0.0f, percent);
+    add("sigh", "Sigh", { 0.0f, 100.0f }, 0.0f, percent);
+    add("vary", "Vary", { 0.0f, 100.0f }, 0.0f, percent);
+    add("velLength", "Velocity to Length", { 0.0f, 100.0f }, 0.0f, percent);
+    add("toneDecay", "Tone Decay", { 0.0f, 100.0f }, 0.0f, percent);
     return layout;
 }
 
@@ -148,6 +247,7 @@ Epsilon808AudioProcessor::Epsilon808AudioProcessor()
                          .withInput("Kick", juce::AudioChannelSet::stereo(), false)),
       params(*this, &undoManager, "PARAMETERS", makeLayout())
 {
+    LayerBank::get();   // decode the built-in layers now, not on the audio thread
     for (auto* parameter : getParameters())
         if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(parameter))
             params.addParameterListener(ranged->getParameterID(), this);
@@ -204,6 +304,38 @@ boom::Settings Epsilon808AudioProcessor::readSettings() const
     s.kickLock = v("kickLock") > 0.5f; s.kickMode = static_cast<boom::KickMode>(juce::roundToInt(v("kickMode"))); s.duckMs = v("duck");
     s.clip = v("clip") > 0.5f; s.phoneCheck = v("phone") > 0.5f;
     s.phoneModel = static_cast<boom::PhoneModel>(juce::roundToInt(v("phoneModel")));
+
+    for (int slot = 0; slot < 2; ++slot)
+    {
+        auto& L = s.layers[static_cast<std::size_t>(slot)];
+        const juce::String X = slot == 0 ? "layerA" : "layerB";
+        const auto f = [&](const char* suffix) { return params.getRawParameterValue(X + suffix)->load(std::memory_order_relaxed); };
+        L.on = juce::roundToInt(f("")) > 0;
+        L.levelDb = f("Level") <= -35.5f ? -120.0f : f("Level");
+        L.tune = f("Tune");
+        L.lowCutHz = f("LowCut") <= 20.5f ? 0.0f : f("LowCut");
+        L.attackMs = f("Attack");
+        L.decayMs = f("Decay");
+        L.width = f("Width") * 0.01f;
+        L.releaseMs = v("layerARelease");
+        if (slot == 0)
+        {
+            L.startMs = v("layerAStart");
+            L.holdMs = v("layerAHold");
+            L.sustain = v("layerASustain") * 0.01f;
+            L.track = v("layerATrack") > 0.5f;
+            L.invert = v("layerAInvert") > 0.5f;
+        }
+        else
+        {
+            L.sustain = 0.0f;   // B: Length below Natural fades it out
+        }
+    }
+    s.engineDb = v("engine");
+    s.phaseLock = v("phaseLock") > 0.5f;
+    s.phaseDeg = v("phaseShift");
+    s.snap = v("snap") * 0.01f; s.sigh = v("sigh") * 0.01f; s.vary = v("vary") * 0.01f;
+    s.velLength = v("velLength") * 0.01f; s.toneDecay = v("toneDecay") * 0.01f;
     return s;
 }
 
@@ -219,11 +351,65 @@ void Epsilon808AudioProcessor::handleMidi(const juce::MidiMessage& m)
         engine.allNotesOff();
 }
 
+juce::StringArray Epsilon808AudioProcessor::layerChoices(int slot)
+{
+    juce::StringArray list { "Off" };
+    for (int i = 0; i < layerInfoCount; ++i)
+        list.add(layerInfos[i].name);
+    list.add(slot == 0 ? "Your Sample A" : "Your Sample B");
+    return list;
+}
+
+int Epsilon808AudioProcessor::layerIndexOf(const char* name)
+{
+    for (int i = 0; i < layerInfoCount; ++i)
+        if (juce::String(layerInfos[i].name) == name)
+            return i + 1;
+    jassertfalse;   // a preset names a sound that is not in the library
+    return 0;
+}
+
+const DecodedLayer* Epsilon808AudioProcessor::layerFor(int slot) const
+{
+    const auto index = juce::roundToInt(params.getRawParameterValue(slot == 0 ? "layerA" : "layerB")->load());
+    if (index <= 0)
+        return nullptr;
+    if (index == userLayerIndex())
+        return userLayer[static_cast<std::size_t>(slot)].load();
+    const auto* layer = LayerBank::get().at(index - 1);
+    return layer != nullptr && layer->sample.length > 0 ? layer : nullptr;
+}
+
+bool Epsilon808AudioProcessor::loadUserSample(int slot, const juce::File& file, juce::String& error)
+{
+    slot = juce::jlimit(0, 1, slot);
+    const auto* layer = LayerBank::get().loadUserFile(file, error);
+    if (layer == nullptr)
+        return false;
+    userLayer[static_cast<std::size_t>(slot)].store(layer);
+    userFile[static_cast<std::size_t>(slot)] = file;
+    if (auto* p = params.getParameter(slot == 0 ? "layerA" : "layerB"))
+        p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(userLayerIndex())));
+    return true;
+}
+
+juce::String Epsilon808AudioProcessor::getUserSampleName(int slot) const
+{
+    const auto* layer = userLayer[static_cast<std::size_t>(juce::jlimit(0, 1, slot))].load();
+    return layer != nullptr ? layer->name : juce::String();
+}
+
 void Epsilon808AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
     const auto samples = buffer.getNumSamples();
-    const auto settings = readSettings();
+    auto settings = readSettings();
+    for (int slot = 0; slot < 2; ++slot)
+    {
+        const auto* layer = layerFor(slot);
+        engine.setLayerSample(slot, layer != nullptr ? &layer->sample : nullptr);
+        settings.layers[static_cast<std::size_t>(slot)].on = layer != nullptr;
+    }
     engine.setPriority(static_cast<boom::Priority>(juce::roundToInt(params.getRawParameterValue("priority")->load())));
 
     // Kick Lock's Exact mode delays MIDI by 5 ms; the total delay is reported to the host.
@@ -380,8 +566,11 @@ void Epsilon808AudioProcessor::loadPreset(const PresetEntry& entry)
     {
         if (!juce::isPositiveAndBelow(entry.factoryIndex, getNumPrograms()))
             return;
-        // every control goes back to its default, then the preset's own values are applied
+        // every control goes back to its default, then the 808 character baseline, then the preset's own values
         resetSoundParameters();
+        for (const auto& [id, value] : characterBaseline())
+            if (auto* parameter = params.getParameter(id))
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
         for (const auto& [id, value] : factoryPresets()[static_cast<std::size_t>(entry.factoryIndex)].values)
             if (auto* parameter = params.getParameter(id))
                 parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
@@ -514,6 +703,8 @@ void Epsilon808AudioProcessor::getStateInformation(juce::MemoryBlock& destinatio
     state.setProperty("preset", currentFactory, nullptr);
     state.setProperty("presetName", currentPresetName, nullptr);
     state.setProperty("presetModified", presetModified.load(), nullptr);
+    state.setProperty("userSampleA", userFile[0].getFullPathName(), nullptr);
+    state.setProperty("userSampleB", userFile[1].getFullPathName(), nullptr);
     for (auto child = state.getChildWithName("AB"); child.isValid(); child = state.getChildWithName("AB"))
         state.removeChild(child, nullptr);
     slots[static_cast<std::size_t>(activeSlot)] = captureSettings();
@@ -537,6 +728,19 @@ void Epsilon808AudioProcessor::setStateInformation(const void* data, int size)
     if (xml == nullptr || !xml->hasTagName(params.state.getType()))
         return;
     auto tree = juce::ValueTree::fromXml(*xml);
+    for (int slot = 0; slot < 2; ++slot)
+    {
+        const auto path = tree.getProperty(slot == 0 ? "userSampleA" : "userSampleB").toString();
+        if (path.isNotEmpty() && juce::File::isAbsolutePath(path) && juce::File(path) != userFile[static_cast<std::size_t>(slot)])
+        {
+            juce::String error;
+            if (const auto* layer = LayerBank::get().loadUserFile(juce::File(path), error))
+            {
+                userLayer[static_cast<std::size_t>(slot)].store(layer);
+                userFile[static_cast<std::size_t>(slot)] = juce::File(path);
+            }
+        }
+    }
     currentFactory = juce::jlimit(-1, getNumPrograms() - 1, static_cast<int>(tree.getProperty("preset", 0)));
     currentPresetName = tree.getProperty("presetName", currentFactory >= 0 ? getProgramName(currentFactory) : juce::String("Init 808")).toString();
     slots = {};

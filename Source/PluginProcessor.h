@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "Boom808Engine.h"
+#include "LayerBank.h"
 
 struct BoomPreset
 {
@@ -64,6 +65,7 @@ public:
     // presets
     static const std::vector<BoomPreset>& factoryPresets();
     static juce::StringArray categories();
+    static const std::vector<std::pair<const char*, float>>& characterBaseline();
     static juce::File userPresetFolder();
     std::vector<PresetEntry> listPresets() const;
     void loadPreset(const PresetEntry&);
@@ -82,6 +84,14 @@ public:
     // Kick Lock status for the panel
     bool isKickInputRouted() const noexcept { return kickRouted.load(); }
     float getKickInputLevel() const noexcept { return kickLevel.load(); }
+
+    // Hybrid layers. Choice index 0 = Off, 1..N = built-in sounds, N + 1 = the slot's own sample.
+    static juce::StringArray layerChoices(int slot);
+    static int layerIndexOf(const char* name);
+    static int userLayerIndex() { return LayerBank::get().size() + 1; }
+    bool loadUserSample(int slot, const juce::File& file, juce::String& error);
+    juce::String getUserSampleName(int slot) const;
+    const DecodedLayer* layerFor(int slot) const;   // what the slot plays now (for the waveform), or null
 
     // Settings that belong to the session, not to the sound: presets and A/B leave them alone.
     static bool isSessionParameter(const juce::String& id);
@@ -121,6 +131,9 @@ private:
     int queueHead = 0, queueCount = 0;
     std::int64_t sampleClock = 0;
     int currentLookahead = -1;
+
+    std::array<std::atomic<const DecodedLayer*>, 2> userLayer {};
+    std::array<juce::File, 2> userFile;
 
     std::vector<float> sidechainMono;
     std::atomic<bool> kickRouted { false };
