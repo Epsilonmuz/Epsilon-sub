@@ -12,7 +12,7 @@ Version 1.1.0. Built with JUCE 9.0.5, C++17. macOS 12+ (universal), Windows (VS2
 
 v1.0's presets were clean and tight, but every hit was identical and the body was a pure synth: it read as machine-made. 1.1 fixes that two ways.
 
-**1. Sample layers, blended with the engine.** Two layers sit on top of the engine (HYBRID page; Layer A is also on SIMPLE):
+**1. Sample layers, blended with the engine.** Two layers sit on top of the engine (HYBRID page):
 
 | | |
 |---|---|
@@ -39,7 +39,7 @@ Layers play at 4x with cubic interpolation, follow note, glide and bend (not the
 
 Every factory preset now carries a light baseline of these (Snap 30, Sigh 25, Vary 20, Vel > Length 25, Tone Decay 25) unless it sets them itself; Pure Sine stays pure.
 
-**Every preset is a hybrid.** All 75 presets except Pure Sine blend the engine's sine with a sample layer, phase-locked: the 41 v1.0 presets and the Basic 808s each got the sound that suits them (Heavyweight under the long trap and drill 808s, Short and Rum under the knocks, Cyclical, Reaper and Grit Stack under the distorted ones, Perfect Donk under the log drums, the reeses under the wide ones). Where a preset is shorter than its sample, the layer's Decay follows the preset's Length. Set Layer A to Off for the engine alone.
+**Every preset merges its wave with your 808s (Blend).** The engine's oscillator itself becomes a mix of its sine and a sound from the Cymatics folder: each sound was analysed into single-cycle waves, one every 20 ms of its life, carrying its harmonic recipe and wave shape as it evolves (bright front, darkening tail, grit, movement). Blend morphs the sine into those waves at the engine's own pitch, so punch, glides and tuning stay the engine's and nothing can phase-cancel (it is one oscillator, not two). All 75 presets but Pure Sine pick the sound that suits them (Heavyweight for long trap and drill, Short and Rum for knocks, Cyclical, Reaper and Grit Stack for the distorted ones, Perfect Donk for log drums, reeses and fusions for the wide and game-changing ones) at 60-100%. On SIMPLE: the 808 SOUND picker and BLEND knob. The sample layers (and LOAD for your own kick or 808) stay available on HYBRID, off in the presets.
 
 **New presets (35):** Basic 808 (8, voiced from the research), Hybrid Trap (8), Hybrid Drill (5), Hybrid Dembow (6) and Game Changers (8: Layer Cake, Frozen Whale, Eternity Pluck, Brooding Ring, Drillbow, Talking Grit, and two engine-off sample instruments). All presets are loudness-matched to -12.8 LUFS on the audit phrase (docs/preset-audit.txt).
 

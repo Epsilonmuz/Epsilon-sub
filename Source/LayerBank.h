@@ -8,6 +8,7 @@
 
 #include "Boom808Engine.h"
 #include "LayerLibrary.h"
+#include "WaveAnalysis.h"
 
 #include <deque>
 #include <mutex>
@@ -18,6 +19,8 @@ struct DecodedLayer
     std::vector<float> mid, side;
     boom::LayerSample sample;
     bool hasSide = false;
+    std::vector<float> waves;      // the sound as single-cycle waves over time, for Blend
+    boom::MorphSource morph;
 
     void finish(double rate, float rootNote, float rootHz)
     {
@@ -27,6 +30,11 @@ struct DecodedLayer
         sample.rate = rate;
         sample.rootNote = rootNote;
         sample.rootHz = rootHz;
+        waves = boom::wave::analyse(mid.data(), static_cast<int>(mid.size()), rate, rootHz);
+        morph.tables = waves.data();
+        morph.frames = static_cast<int>(waves.size() / boom::wave::tableSize);
+        morph.size = boom::wave::tableSize;
+        morph.hopSeconds = boom::wave::hopSeconds;
     }
 };
 

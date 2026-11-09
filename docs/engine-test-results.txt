@@ -39,6 +39,10 @@
 [PASS] Vary: 8 hits spread 3.47 dB at 100% (0.000 dB at 0%)
 [PASS] Vel > Length: -40 dB after 1.02 s at full velocity, 0.56 s at 30%
 [PASS] Tone Decay: 2nd harmonic vs body changes -39.1 dB over the tail (0.0 dB with Tone Decay off)
-   CPU: 4.91% of one core at 48 kHz, all effects on
+[PASS] wave analysis: 147 waves; 2nd/3rd harmonic -6.8 / -11.3 dB at the start (sample: -6.4 / -10.9), 2nd -27.3 dB at 1.2 s
+[PASS] Blend 100%: plays at 65.383 Hz with the sample's 2nd harmonic at -8.8 dB
+[PASS] Blend 50%: fundamental -0.2 deg from the sine's, level 1.01 of the smaller source (no cancellation)
+[PASS] Blend 0%: identical to the engine alone (largest difference 0.0e+00)
+   CPU: 4.86% of one core at 48 kHz, all effects on
 
 0 failure(s)

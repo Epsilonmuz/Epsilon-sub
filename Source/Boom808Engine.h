@@ -50,6 +50,14 @@ struct LayerSample
     float rootHz = 32.7032f;        // its measured fundamental: playback is tuned to this, so samples land in tune
 };
 
+// A morph source: single-cycle waves taken from a sample every hopSeconds (see WaveAnalysis.h).
+struct MorphSource
+{
+    const float* tables = nullptr;   // frames * size
+    int frames = 0, size = 2048;
+    double hopSeconds = 0.02;
+};
+
 struct LayerSettings
 {
     bool on = false;
@@ -84,6 +92,7 @@ struct Settings
     // v1.1 hybrid
     std::array<LayerSettings, 2> layers {};
     float engineDb = 0.0f;                       // synth body + click level; <= -48 = off
+    float morph = 0.0f;                          // 0..1: the engine's sine merged into the morph source's wave
     bool phaseLock = true; float phaseDeg = 0.0f;
     // v1.1 808 character
     float snap = 0.0f, sigh = 0.0f, vary = 0.0f, velLength = 0.0f, toneDecay = 0.0f;   // all 0..1
@@ -131,6 +140,9 @@ public:
     {
         if (slot >= 0 && slot < 2) layerSource[static_cast<std::size_t>(slot)].store(sample, std::memory_order_release);
     }
+
+    // The wave the engine's oscillator blends into (Blend). nullptr = pure sine. Same lifetime rule as layers.
+    void setMorphSource(const MorphSource* source) noexcept { morphSource.store(source, std::memory_order_release); }
 
     void setMeteringEnabled(bool enabled) noexcept { metering.store(enabled, std::memory_order_relaxed); }
     bool readMeterFrame(MeterFrame& frame) noexcept;
@@ -213,6 +225,8 @@ private:
 
     Voice voice, tail;
     std::array<std::atomic<const LayerSample*>, 2> layerSource {};
+    std::atomic<const MorphSource*> morphSource { nullptr };
+    const MorphSource* morphNow = nullptr;
     std::array<const LayerSample*, 2> layerNow {};   // what this block plays
     std::array<float, 2> layerGain {}, layerG {};    // per block: level, low-cut coefficient
     float engineGain = 1.0f;

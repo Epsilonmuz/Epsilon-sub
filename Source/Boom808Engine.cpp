@@ -635,7 +635,25 @@ float Engine::renderVoiceSample(Voice& v, const Settings& s, double hz, float dt
     const auto p = static_cast<float>(twoPi * v.phase);
     // Tone Decay: the harmonics fade faster than the body, as on a driven hardware 808
     const auto toneNow = s.tone * v.varTone * (s.toneDecay > 0.0f ? std::pow(std::max(v.env, 0.0f), 2.5f * s.toneDecay) : 1.0f);
-    auto body = std::sin(p) + toneNow * (0.35f * std::sin(2.0f * p) + 0.2f * std::sin(3.0f * p))
+    // Blend: the oscillator's wave moves from a pure sine into the morph source's wave at this moment of
+    // its life (time since the hit), read at the engine's own phase, so pitch, punch and glides stay the engine's
+    auto wave = std::sin(p);
+    if (morphNow != nullptr && s.morph > 0.0f && morphNow->frames > 0)
+    {
+        const auto& m = *morphNow;
+        const auto ft = static_cast<float>(v.punchTime / m.hopSeconds);
+        const auto f0 = std::min(static_cast<int>(ft), m.frames - 1);
+        const auto f1 = std::min(f0 + 1, m.frames - 1);
+        const auto fr = f0 == f1 ? 0.0f : ft - static_cast<float>(f0);
+        const auto pos = v.phase * m.size;
+        const auto i0 = static_cast<int>(pos) & (m.size - 1), i1 = (i0 + 1) & (m.size - 1);
+        const auto fp = static_cast<float>(pos - std::floor(pos));
+        const float* a = m.tables + static_cast<std::size_t>(f0) * static_cast<std::size_t>(m.size);
+        const float* b = m.tables + static_cast<std::size_t>(f1) * static_cast<std::size_t>(m.size);
+        const auto wa = a[i0] + fp * (a[i1] - a[i0]), wb = b[i0] + fp * (b[i1] - b[i0]);
+        wave += std::clamp(s.morph, 0.0f, 1.0f) * (wa + fr * (wb - wa) - wave);
+    }
+    auto body = wave + toneNow * (0.35f * std::sin(2.0f * p) + 0.2f * std::sin(3.0f * p))
               + s.sub * 0.8f * static_cast<float>(std::sin(twoPi * v.subPhase));
     body /= 1.0f + 0.55f * s.tone * v.varTone + 0.8f * s.sub;
 
@@ -761,6 +779,7 @@ void Engine::render(float* left, float* right, int samples, const Settings& s, c
         layerG[slot] = std::tan(pi * std::clamp(L.lowCutHz, 10.0f, 2000.0f) / static_cast<float>(srOs));
     }
     engineGain = s.engineDb <= -47.5f ? 0.0f : dbToGain(s.engineDb);
+    morphNow = morphSource.load(std::memory_order_acquire);
     const auto gSide = tw(150.0f);
     // pitch envelope: Punch (the knock), Snap (the circuit's ~6 ms attack shift), Sigh (the slow settle)
     const auto pitchEnvelope = [&s](const Voice& v)

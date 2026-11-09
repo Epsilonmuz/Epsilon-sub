@@ -135,7 +135,11 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
 .hy .pills .pill { padding: 4px 11px; font-size: 12.5px; }
 .knobs.layerA { grid-template-columns: repeat(10, minmax(0, 1fr)); }
 .knobs.layerB { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.knobs.eng { grid-template-columns: repeat(2, minmax(0, 84px)); }
+.knobs.eng { grid-template-columns: repeat(3, minmax(0, 76px)); }
+.blend-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; }
+.blend-row select { font-family: var(--display); font-weight: 600; font-size: 15px; background: color-mix(in srgb, var(--layerA) 10%, var(--plot)); border: 1px solid var(--layerA); border-radius: 8px; padding: 7px 10px; color: var(--text); min-width: 0; max-width: 100%; }
+.blend-row .knob.small svg { max-width: 64px; }
+.blend-hint { color: var(--ember); font-size: 13px; }
 .knobs.char { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .hy-b { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; }
 .hy-c { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
@@ -200,8 +204,8 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
 
   <section class="tries" aria-label="Things to try">
     <div class="try">
-      <h3>Phase Lock</h3>
-      <p>Heavyweight Hybrid with the full sample under the engine. One pass with Phase Lock off (the lows fight and thin out), one with it on (they add up). Needs your sound pack.</p>
+      <h3>Blend</h3>
+      <p>Heavyweight Hybrid with Blend at 0 (the engine's plain sine), then at its preset value: the same 808, its wave merged with your Heavyweight sample. Needs your sound pack.</p>
       <button class="btn" data-try="phase">Run it</button>
     </div>
     <div class="try">
@@ -210,8 +214,8 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
       <button class="btn" data-try="character">Run it</button>
     </div>
     <div class="try">
-      <h3>Hybrid vs engine</h3>
-      <p>Layer Cake as the engine alone, then with its two layers: the Heavyweight front handing its tail to the Punchy reese. Needs your sound pack.</p>
+      <h3>Merge step by step</h3>
+      <p>Layer Cake at Blend 0, then half-way, then its full blend with the Heavy Reese fusion: hear the wave change shape. Needs your sound pack.</p>
       <button class="btn" data-try="hybrid">Run it</button>
     </div>
     <div class="try">
@@ -343,6 +347,8 @@ class Boom808 {
   }
   // sample = { mid: Float32Array, side: Float32Array|null, length, rate, rootNote, rootHz } or null
   setLayerSample(slot, sample) { this.layerSrc[slot] = sample; }
+  // morph = { tables: Float32Array(frames * size), frames, size, hop } or null (Blend)
+  setMorphSource(morph) { this.morphSrc = morph; }
   blankWindow() { return { peakL: 0, peakR: 0, harmonics: 0, lowPeak: 0, gr: 0, duck: 0, kick: false }; }
 
   startNote(note, velocity, fromSilence, s) {
@@ -501,6 +507,14 @@ class Boom808 {
     v.phase += inc; if (v.phase >= 1) v.phase -= 1;
     const p = 6.283185307179586 * v.phase, sp = Math.sin(p);
     let body = sp;
+    const m = this.morphNow;
+    if (m && s.morph > 0 && m.frames > 0) {
+      const ft = v.punchTime / m.hop, f0 = Math.min(Math.floor(ft), m.frames - 1), f1 = Math.min(f0 + 1, m.frames - 1), fr = f0 === f1 ? 0 : ft - f0;
+      const pos = v.phase * m.size, i0 = Math.floor(pos) & (m.size - 1), i1 = (i0 + 1) & (m.size - 1), fp = pos - Math.floor(pos);
+      const a0 = f0 * m.size, b0 = f1 * m.size, t = m.tables;
+      const wa = t[a0 + i0] + fp * (t[a0 + i1] - t[a0 + i0]), wb = t[b0 + i0] + fp * (t[b0 + i1] - t[b0 + i0]);
+      body += Math.min(1, s.morph) * (wa + fr * (wb - wa) - body);
+    }
     const toneNow = s.tone * v.varTone * (s.toneDecay > 0 ? Math.pow(Math.max(v.env, 0), 2.5 * s.toneDecay) : 1);
     if (toneNow > 0) { const cp = Math.cos(p); body += toneNow * (0.35 * 2 * sp * cp + 0.2 * (3 * sp - 4 * sp * sp * sp)); }
     if (s.sub > 0) { v.subPhase += 0.5 * inc; if (v.subPhase >= 1) v.subPhase -= 1; body += s.sub * 0.8 * Math.sin(6.283185307179586 * v.subPhase); }
@@ -545,6 +559,7 @@ class Boom808 {
       this.layerGain[slot] = dbToGain(L.levelDb); this.layerG[slot] = Math.tan(Math.PI * Math.min(2000, Math.max(10, L.lowCutHz)) / this.srOs);
     }
     this.engineGain = s.engineDb <= -47.5 ? 0 : dbToGain(s.engineDb);
+    this.morphNow = this.morphSrc || null;
     const gSide = tw(150), step = [0, 0], tailStepRate = [0, 0], sideV = { v: 0 }, sideT = { v: 0 };
     const pitchEnv = vv => { const t = vv.punchTime, tau = Math.max(0.002, s.punchMs * 0.001 / 3);
       let e = t < 12 * tau ? s.punchSemitones * (1 - s.velPunch + s.velPunch * vv.velocity) * vv.varPunch * Math.exp(-t / tau) : 0;
@@ -726,6 +741,7 @@ const SPECS = [
   { id: 'layerBWidth', name: 'Width', lo: 0, hi: 100, def: 60, group: 'layerB', color: 'layerB', fmt: pct },
   { id: 'engine', name: 'Engine', lo: -48, hi: 6, def: 0, group: 'eng', color: 'magma', fmt: v => v <= -47.5 ? 'Off' : sign(v) + v.toFixed(1) + ' dB', bipolar: false },
   { id: 'phaseShift', name: 'Phase', lo: -180, hi: 180, def: 0, group: 'eng', color: 'magma', fmt: v => sign(v) + Math.round(v) + '\u00b0', bipolar: true },
+  { id: 'blend', name: 'Blend', lo: 0, hi: 100, def: 0, group: 'eng', color: 'layerA', fmt: pct },
   { id: 'snap', name: 'Snap', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
   { id: 'sigh', name: 'Sigh', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
   { id: 'vary', name: 'Vary', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
@@ -739,88 +755,88 @@ const BASELINE = {"snap": 30.0, "sigh": 25.0, "vary": 20.0, "velLength": 25.0, "
 const BEND_DEFAULT = 2;
 const CHOICES = { driveMode: { def: 0, labels: ['Tape', 'Tube', 'Hard', 'Fold'] }, glideMode: { def: 0, labels: ['Legato', 'Always', 'Off'] }, priority: { def: 0, labels: ['Last', 'Low', 'High'] }, kickMode: { def: 0, labels: ['Exact', 'Live'], session: true } };
 const PRESETS = [
-  ["Init 808", "Clean", {"layerA": "808 Standard", "layerALevel": -4, "layerADecay": 1600, "output": -1.7}, "A clean, punchy 808. Start here."],
-  ["Clean Sub", "Clean", {"layerA": "808 Offset", "layerALevel": -6, "punch": 4, "tone": 0, "drive": 0, "click": 0, "glue": 20, "length": 5000, "sustain": 60, "analog": 10, "translate": 25, "output": -3.6}, "Almost a pure sine. For R&B, ballads and big systems."],
+  ["Init 808", "Clean", {"blendSound": "808 Standard", "blend": 60, "output": -0.1}, "A clean, punchy 808. Start here."],
+  ["Clean Sub", "Clean", {"blendSound": "808 Offset", "blend": 60, "punch": 4, "tone": 0, "drive": 0, "click": 0, "glue": 20, "length": 5000, "sustain": 60, "analog": 10, "translate": 25, "output": -2.5}, "Almost a pure sine. For R&B, ballads and big systems."],
   ["Pure Sine", "Clean", {"punch": 0, "tone": 0, "click": 0, "drive": 0, "glue": 0, "sustain": 100, "length": 8000, "release": 200, "snap": 0, "sigh": 0, "vary": 0, "velLength": 0, "toneDecay": 0, "output": -3.3}, "Nothing added. Layer it under another bass."],
-  ["Soft Boom", "Clean", {"layerA": "808 Offset", "layerALevel": -5, "punch": 5, "punchTime": 80, "attack": 6, "tone": 10, "click": 0, "drive": 2, "length": 4000, "analog": 40, "glue": 25, "translate": 25, "output": -3}, "Round and warm, no knock. Sits under vocals."],
-  ["R&B Sub", "Clean", {"layerA": "808 Standard", "layerALevel": -6, "punch": 3, "tone": 10, "click": 5, "drive": 3, "glue": 30, "length": 3500, "sustain": 40, "glide": 120, "analog": 25, "translate": 30, "output": -3.1}, "Smooth sustained sub with gentle slides."],
-  ["Long Trap 808", "Trap", {"layerA": "808 Heavyweight", "layerALevel": -3, "punch": 12, "punchTime": 40, "length": 3500, "glide": 120, "drive": 9, "glue": 35, "translate": 30, "click": 10, "velPunch": 30, "analog": 15, "output": -3.8}, "The classic long trap tail. Overlap notes to slide."],
-  ["Trap Classic", "Trap", {"layerA": "808 Standard", "layerALevel": -3, "punch": 14, "punchTime": 50, "length": 2800, "glide": 100, "drive": 10, "tone": 20, "translate": 35, "glue": 35, "velPunch": 30, "split": 90, "output": -2.2}, "Punchy, slightly driven, heard on phones."],
-  ["Club Trap", "Trap", {"layerA": "808 Cyclical", "layerALevel": -3, "layerADecay": 2400, "punch": 16, "punchTime": 35, "length": 2400, "click": 25, "drive": 14, "driveMode": 1, "split": 100, "translate": 40, "glue": 45, "velPunch": 40, "output": 0.7}, "Hard knock and Tube grit with a clean sub under it."],
-  ["Glide Machine", "Trap", {"layerA": "808 Offset", "layerALevel": -4, "glide": 180, "glideMode": 1, "length": 4000, "sustain": 30, "drive": 12, "driveMode": 1, "translate": 40, "split": 100, "glue": 35, "output": -1.4}, "Slides into every note. Sustains while held."],
-  ["Deep Tail", "Trap", {"layerA": "808 Offset", "layerALevel": -4, "punch": 9, "length": 7000, "sub": 25, "drive": 6, "release": 400, "analog": 20, "glue": 30, "translate": 35, "output": -3}, "Seven-second tail with an octave-down sub."],
-  ["Southern Boom", "Trap", {"layerA": "808 Heavyweight", "layerALevel": -3, "punch": 10, "length": 5000, "sub": 15, "drive": 10, "driveMode": 1, "translate": 30, "analog": 35, "glue": 40, "split": 90, "output": -2}, "Warm Tube boom with analog drift."],
-  ["Velvet Trap", "Trap", {"layerA": "808 Standard", "layerALevel": -5, "punch": 8, "length": 3000, "tone": 10, "drive": 4, "glue": 25, "analog": 30, "translate": 35, "output": -3.3}, "Soft-edged trap 808 for melodic beats."],
-  ["Drill Slide", "Drill", {"layerA": "808 Heavyweight", "layerALevel": -3, "glide": 220, "glideMode": 1, "bendRange": 12, "punch": 7, "length": 2600, "drive": 14, "driveMode": 2, "tone": 25, "translate": 45, "split": 110, "glue": 40, "output": -2.2}, "Long slides into every note, Hard drive, 12-semitone bend."],
-  ["UK Drill", "Drill", {"layerA": "808 Heavyweight", "layerALevel": -3, "layerADecay": 2200, "glide": 260, "glideMode": 1, "punch": 6, "length": 2200, "drive": 18, "driveMode": 2, "tone": 30, "translate": 50, "retrigger": 1, "split": 110, "priority": 1, "glue": 40, "output": -0.9}, "Low-note priority, fresh punch on every slide."],
-  ["NY Drill", "Drill", {"layerA": "808 Cyclical", "layerALevel": -3, "layerADecay": 1800, "glide": 200, "glideMode": 1, "punch": 10, "length": 1800, "drive": 22, "driveMode": 1, "tone": 25, "translate": 55, "click": 30, "split": 100, "retrigger": 1, "glue": 45, "output": 0.4}, "Dirtier and brighter, knocks on every slide."],
-  ["Low Note Drill", "Drill", {"layerA": "808 Rum", "layerALevel": -3, "priority": 1, "glide": 180, "length": 2500, "drive": 14, "driveMode": 2, "translate": 45, "split": 110, "glue": 35, "output": -2}, "Hold a low note and tap higher ones: the low note wins."],
-  ["Slide Grit", "Drill", {"layerA": "Bass Reaper", "layerALevel": -3, "layerALowCut": 100, "layerADecay": 1600, "glide": 240, "glideMode": 1, "drive": 24, "cutoff": 5000, "translate": 40, "split": 120, "glue": 40, "output": 0.5}, "Gritty Tape slides with the fizz filtered off."],
-  ["Distorted 808", "Distorted", {"layerA": "808 Cyclical", "layerALevel": -3, "layerADecay": 1600, "drive": 26, "driveMode": 1, "tone": 30, "translate": 50, "cutoff": 6000, "glue": 40, "split": 100, "output": 0}, "Heavy Tube distortion, clean sub under it."],
-  ["Hard Clip 808", "Distorted", {"layerA": "Bass Reaper", "layerALevel": -3, "layerADecay": 1600, "drive": 24, "driveMode": 2, "glue": 20, "click": 25, "split": 90, "cutoff": 9000, "output": -2.3}, "Aggressive clipped edge."],
-  ["Fold Growl", "Distorted", {"layerA": "Bass Unstable", "layerALevel": -4, "layerALowCut": 90, "layerADecay": 1600, "drive": 24, "driveMode": 3, "driveMix": 70, "tone": 20, "cutoff": 3500, "resonance": 25, "split": 110, "output": 0.2}, "Wavefolder growl through a resonant filter."],
-  ["Rage Fuzz", "Distorted", {"layerA": "Fusion Grit Stack", "layerALevel": -3, "layerADecay": 1600, "drive": 34, "driveMode": 2, "tone": 40, "translate": 60, "cutoff": 6500, "glue": 45, "split": 90, "width": 30, "output": -1}, "Maximum fuzz for rage beats. Sub stays solid."],
-  ["Tube Warmth", "Distorted", {"layerA": "808 Standard", "layerALevel": -4, "layerADecay": 1600, "drive": 15, "driveMode": 1, "driveMix": 60, "tone": 20, "glue": 30, "analog": 20, "translate": 30, "output": -1.4}, "Half clean, half Tube. Thick but polite."],
-  ["Tape Saturated", "Distorted", {"layerA": "808 Offset", "layerALevel": -4, "layerADecay": 1600, "drive": 18, "tone": 15, "translate": 30, "glue": 40, "split": 80, "analog": 15, "output": 0.6}, "Tape saturation with a clean low end."],
-  ["Screamer", "Distorted", {"layerA": "Fusion Talking 808", "layerALevel": -4, "layerALowCut": 100, "layerADecay": 1600, "drive": 30, "driveMode": 3, "driveMix": 55, "tone": 35, "cutoff": 2800, "resonance": 40, "split": 120, "output": 1}, "Folded and filtered, almost vocal."],
-  ["Punchy Short", "Short", {"layerA": "808 Short", "layerALevel": -2, "layerADecay": 450, "length": 450, "punch": 18, "punchTime": 30, "click": 35, "drive": 10, "glue": 50, "velPunch": 40, "output": 2.7}, "Short and tight. Velocity sets the knock."],
-  ["Knock", "Short", {"layerA": "808 Rum", "layerALevel": -2, "layerADecay": 700, "punch": 24, "punchTime": 25, "length": 700, "click": 50, "drive": 16, "glue": 60, "split": 90, "velPunch": 40, "output": 4.5}, "Maximum punch. Cuts through any kick."],
-  ["Bounce", "Short", {"layerA": "808 Short", "layerALevel": -3, "layerADecay": 600, "length": 600, "punch": 16, "punchTime": 35, "click": 25, "drive": 10, "glue": 45, "velPunch": 50, "translate": 30, "output": 1.8}, "Bouncy short 808 for up-tempo beats."],
-  ["Detroit Tap", "Short", {"layerA": "808 Rum", "layerALevel": -2, "layerADecay": 350, "length": 350, "punch": 20, "punchTime": 20, "click": 45, "drive": 14, "driveMode": 2, "glue": 55, "translate": 30, "split": 100, "output": 5.8}, "Tapped, Hard-driven, very short."],
-  ["Kick 808", "Short", {"layerA": "808 Heavyweight", "layerALevel": -2, "layerADecay": 1200, "punch": 24, "punchTime": 30, "length": 1200, "click": 60, "drive": 12, "glue": 50, "velPunch": 40, "velDrive": 30, "split": 80, "output": 2.1}, "Doubles as the kick. Accents hit harder and dirtier."],
-  ["Melodic Glide", "Melodic", {"layerA": "808 Offset", "layerALevel": -5, "glide": 140, "length": 3000, "sustain": 50, "tone": 30, "drive": 8, "translate": 45, "analog": 15, "output": -3.4}, "Sustained and bright enough to carry a melody."],
-  ["Bell Sub", "Melodic", {"layerA": "Reese Faith", "layerALevel": -8, "layerALowCut": 150, "layerADecay": 2500, "tone": 60, "punch": 2, "drive": 5, "translate": 50, "length": 2500, "cutoff": 4000, "click": 5, "output": 0.4}, "Bell-like harmonics over the sub."],
-  ["Plucked Bass", "Melodic", {"layerA": "Bass Perfect Donk", "layerALevel": -3, "layerADecay": 800, "length": 800, "tone": 45, "punch": 6, "punchTime": 20, "drive": 10, "driveMode": 1, "cutoff": 2500, "resonance": 30, "velDrive": 40, "translate": 30, "output": 1.3}, "Short pluck with a resonant filter. Accents get dirtier."],
-  ["Log Drum", "Log Drum", {"layerA": "Bass Perfect Donk", "layerALevel": -3, "layerADecay": 320, "tune": 12, "length": 320, "punch": 9, "punchTime": 14, "click": 55, "tone": 60, "drive": 6, "cutoff": 1500, "resonance": 45, "glide": 60, "glideMode": 1, "translate": 30, "glue": 40, "output": 2.7}, "Amapiano log drum. Play from C1; it sounds an octave up."],
-  ["Log Drum Deep", "Log Drum", {"layerA": "Bass Perfect Donk", "layerALevel": -3, "layerADecay": 450, "tune": 7, "length": 450, "punch": 7, "punchTime": 18, "click": 45, "tone": 50, "drive": 4, "cutoff": 1100, "resonance": 40, "glide": 80, "glideMode": 1, "glue": 35, "translate": 20, "output": 2.6}, "Darker, longer log drum."],
-  ["Log Drum Bright", "Log Drum", {"layerA": "808 Short", "layerALevel": -4, "layerADecay": 260, "tune": 12, "length": 260, "punch": 12, "punchTime": 10, "click": 70, "tone": 70, "drive": 10, "cutoff": 2400, "resonance": 50, "glide": 50, "glideMode": 1, "translate": 40, "glue": 40, "output": 2.1}, "Bright log drum that cuts through."],
-  ["Amapiano Slide", "Log Drum", {"layerA": "Bass Perfect Donk", "layerALevel": -3, "layerADecay": 380, "tune": 12, "length": 380, "punch": 8, "punchTime": 15, "click": 50, "tone": 55, "cutoff": 1400, "resonance": 42, "glide": 140, "glideMode": 1, "retrigger": 1, "glue": 35, "output": 1.8}, "Log drum with long slides and a fresh hit on each."],
-  ["Wide Character", "Wide", {"layerA": "Reese Faith", "layerALevel": -6, "layerALowCut": 140, "layerAWidth": 80, "layerADecay": 1600, "width": 60, "tone": 30, "drive": 14, "driveMode": 1, "translate": 35, "split": 100, "output": 1.6}, "Wide Tube harmonics; the sub stays mono."],
-  ["Stereo Grit", "Wide", {"layerA": "Reese Toronto", "layerALevel": -5, "layerALowCut": 140, "layerAWidth": 80, "layerADecay": 1600, "width": 70, "drive": 20, "driveMode": 1, "tone": 35, "translate": 45, "split": 110, "glue": 40, "output": 1.5}, "Wide and gritty for big choruses."],
-  ["Wide Fold", "Wide", {"layerA": "Bass Brooding", "layerALevel": -6, "layerALowCut": 140, "layerAWidth": 80, "layerADecay": 1600, "width": 50, "drive": 22, "driveMode": 3, "driveMix": 65, "cutoff": 3800, "resonance": 20, "split": 110, "output": 0.7}, "Wide wavefolder texture."],
-  ["Phone Ready", "Mix Ready", {"layerA": "808 Cyclical", "layerALevel": -3, "layerADecay": 1600, "translate": 80, "drive": 12, "tone": 35, "click": 30, "split": 100, "glue": 40, "output": 0.4}, "Built to be heard on phone speakers."],
-  ["Heard Everywhere", "Mix Ready", {"layerA": "808 Standard", "layerALevel": -3, "layerADecay": 1600, "translate": 65, "split": 100, "drive": 10, "glue": 45, "tone": 25, "analog": 10, "output": 1.1}, "Balanced for phones, laptops and clubs."],
-  ["808 Classic", "Basic 808", {"layerA": "808 Standard", "layerALevel": -4, "layerADecay": 1900, "punch": 6, "punchTime": 25, "snap": 60, "sigh": 55, "vary": 35, "velLength": 60, "length": 1900, "tone": 12, "toneDecay": 45, "click": 18, "drive": 4, "analog": 30, "glue": 20, "translate": 25, "output": -2.1}, "The hardware 808: snap, a slow sigh, every hit slightly different."],
-  ["808 Long Decay", "Basic 808", {"layerA": "808 Offset", "layerALevel": -4, "punch": 7, "punchTime": 30, "snap": 50, "sigh": 60, "vary": 30, "velLength": 40, "length": 5800, "release": 300, "tone": 10, "toneDecay": 55, "click": 12, "drive": 5, "analog": 35, "glue": 25, "translate": 30, "output": -3.6}, "The long-decay mod: a tail that rings for bars."],
-  ["808 Short Tight", "Basic 808", {"layerA": "808 Short", "layerALevel": -3, "layerADecay": 480, "punch": 9, "punchTime": 22, "snap": 70, "sigh": 35, "vary": 30, "velLength": 40, "length": 480, "click": 30, "drive": 8, "glue": 45, "translate": 25, "output": 2.9}, "Short and tight with the circuit's snap."],
-  ["808 Accent Boom", "Basic 808", {"layerA": "808 Heavyweight", "layerALevel": -4, "punch": 10, "punchTime": 35, "snap": 55, "sigh": 70, "vary": 30, "velLength": 85, "velPunch": 55, "velDrive": 30, "length": 2700, "tone": 15, "toneDecay": 40, "drive": 8, "driveMode": 1, "split": 90, "glue": 30, "translate": 30, "output": -2}, "Play with velocity: accents hit harder, sigh more and ring longer."],
-  ["808 Tuned Bass", "Basic 808", {"layerA": "808 Offset", "layerALevel": -5, "punch": 8, "snap": 40, "sigh": 30, "vary": 20, "length": 3200, "sustain": 35, "glide": 110, "tone": 18, "toneDecay": 50, "drive": 6, "analog": 20, "glue": 30, "translate": 35, "output": -3.1}, "Holds while you play, for melodic bass lines."],
-  ["808 Warm Tape", "Basic 808", {"layerA": "808 Standard", "layerALevel": -4, "punch": 9, "snap": 45, "sigh": 45, "vary": 35, "velLength": 40, "length": 2600, "tone": 25, "toneDecay": 65, "drive": 12, "split": 90, "analog": 40, "glue": 30, "translate": 30, "output": -2.5}, "Tape warmth that darkens as the note fades."],
-  ["808 Driven", "Basic 808", {"layerA": "808 Cyclical", "layerALevel": -4, "layerADecay": 2400, "punch": 11, "snap": 50, "sigh": 40, "vary": 30, "velLength": 40, "length": 2400, "tone": 25, "toneDecay": 30, "drive": 20, "driveMode": 1, "split": 100, "glue": 35, "translate": 40, "output": -0.9}, "Tube-driven 808 with a clean sub and a live feel."],
-  ["808 Sine Snap", "Basic 808", {"layerA": "808 Offset", "layerALevel": -6, "punch": 3, "snap": 65, "sigh": 50, "vary": 15, "tone": 0, "click": 0, "drive": 0, "glue": 15, "length": 3000, "translate": 20, "output": -2.9}, "A clean sine with only the circuit's snap and sigh."],
-  ["Heavyweight Hybrid", "Hybrid Trap", {"layerA": "808 Heavyweight", "layerALevel": -2, "punch": 10, "snap": 40, "sigh": 35, "vary": 25, "length": 2600, "glide": 110, "drive": 6, "translate": 30, "glue": 30, "output": -4}, "The Heavyweight 808 locked in phase with the engine. Plays in tune on every key."],
-  ["Glass Top Boom", "Hybrid Trap", {"layerA": "Reese Faith", "layerALowCut": 140, "layerADecay": 2800, "layerAWidth": 75, "layerALevel": -4, "punch": 10, "length": 3200, "sigh": 40, "vary": 20, "tone": 15, "translate": 25, "glue": 30, "output": -1.3}, "Faith reese shimmer on top of a long clean sub."],
-  ["Thick Standard", "Hybrid Trap", {"layerA": "808 Standard", "layerALowCut": 100, "punch": 10, "length": 2100, "tone": 20, "toneDecay": 40, "drive": 9, "driveMode": 1, "split": 90, "snap": 35, "sigh": 35, "vary": 25, "translate": 30, "glue": 35, "output": 1.4}, "Standard 808 grit above a warm, tube-driven engine."],
-  ["Cyclical Phone Killer", "Hybrid Trap", {"layerA": "808 Cyclical", "layerALowCut": 110, "punch": 9, "length": 2600, "drive": 14, "split": 100, "translate": 60, "snap": 35, "vary": 25, "glue": 35, "output": -1.3}, "Cyclical 808 plus Translate: follows on any phone speaker."],
-  ["Octave Ghost", "Hybrid Trap", {"layerA": "808 Offset", "layerALevel": -2, "layerB": "Reese Faith", "layerBAttack": 380, "layerBLevel": -9, "layerBLowCut": 150, "layerBWidth": 80, "punch": 9, "length": 3000, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": -3.4}, "Offset 808, with the Faith reese fading in an octave up."],
-  ["Eternity Pad 808", "Hybrid Trap", {"layerA": "Reese Eternity", "layerALowCut": 160, "layerADecay": 3400, "layerALevel": -3, "layerAWidth": 85, "punch": 10, "length": 3600, "click": 20, "sigh": 40, "translate": 20, "glue": 30, "output": -1.6}, "A long airy reese wash over a deep sub."],
-  ["Heavy Reese", "Hybrid Trap", {"layerA": "Fusion Heavy Reese", "layerALevel": -2, "punch": 8, "length": 3000, "glide": 120, "drive": 6, "driveMode": 1, "split": 90, "sigh": 35, "vary": 25, "translate": 25, "glue": 35, "output": -1.6}, "Fusion: the Heavyweight front with the Toronto reese growling inside its tail."],
-  ["Talking 808", "Hybrid Trap", {"layerA": "Fusion Talking 808", "layerALowCut": 100, "punch": 9, "length": 2600, "drive": 8, "driveMode": 1, "split": 100, "sigh": 40, "vary": 25, "translate": 30, "glue": 35, "output": 1.8}, "Fusion: an 808 shaped by a reese's vowels. It talks as it rings."],
-  ["UK Slide Hybrid", "Hybrid Drill", {"layerA": "808 Heavyweight", "layerALevel": -2, "glide": 220, "glideMode": 1, "priority": 1, "retrigger": 1, "punch": 6, "length": 2400, "drive": 14, "driveMode": 2, "split": 110, "snap": 35, "vary": 25, "translate": 45, "glue": 40, "output": -2.4}, "Heavyweight 808 that slides on every note; low note wins."],
-  ["Dark Reese Drill", "Hybrid Drill", {"layerA": "Reese Toronto", "layerALowCut": 150, "layerADecay": 3000, "layerAWidth": 70, "glide": 200, "glideMode": 1, "punch": 6, "length": 3000, "click": 25, "drive": 8, "driveMode": 1, "split": 110, "translate": 35, "glue": 35, "output": 1.2}, "Toronto reese growl over a sliding sub."],
-  ["NY Grit Slide", "Hybrid Drill", {"layerA": "Fusion Grit Stack", "layerALevel": -2, "glide": 180, "glideMode": 1, "retrigger": 1, "punch": 8, "length": 2000, "drive": 16, "driveMode": 1, "split": 100, "snap": 40, "vary": 30, "translate": 50, "glue": 45, "output": -0.3}, "Fusion Grit Stack: three basses glued into one, knocking on every slide."],
-  ["Whale Slide", "Hybrid Drill", {"layerA": "Reese Whale", "layerALowCut": 150, "layerADecay": 2500, "layerAWidth": 70, "layerALevel": 2, "glide": 300, "glideMode": 1, "punch": 6, "length": 2600, "translate": 30, "glue": 35, "output": -0.4}, "Whale reese sinking under long slides."],
-  ["Rum Stretch Drill", "Hybrid Drill", {"layerA": "Fusion Rum Stretch", "glide": 160, "glideMode": 1, "retrigger": 1, "priority": 1, "punch": 8, "length": 2600, "drive": 12, "driveMode": 2, "split": 100, "snap": 40, "vary": 30, "translate": 40, "glue": 40, "output": -0.5}, "Fusion: the short Rum 808 stretched into a long gritty tail."],
-  ["Donk Pop", "Hybrid Dembow", {"layerA": "Bass Perfect Donk", "layerALowCut": 90, "layerALevel": 1, "punch": 16, "punchTime": 20, "length": 700, "snap": 50, "vary": 30, "drive": 8, "driveMode": 1, "glue": 45, "translate": 35, "output": 0.8}, "The Perfect Donk bass on a tight engine thump."],
-  ["Perreo Thump", "Hybrid Dembow", {"layerA": "808 Short", "layerALowCut": 110, "punch": 16, "punchTime": 20, "length": 600, "click": 40, "snap": 60, "vary": 30, "velLength": 40, "drive": 10, "driveMode": 1, "glue": 50, "translate": 35, "output": 2.6}, "Tight thump that pairs with the dembow kick."],
-  ["Glass Donk", "Hybrid Dembow", {"layerA": "Fusion Glass Donk", "layerALevel": 1, "punch": 12, "length": 900, "snap": 40, "vary": 30, "glue": 40, "translate": 30, "output": 0}, "Fusion: the Donk played through a slice of the Eternity reese."],
-  ["Reggaeton Round", "Hybrid Dembow", {"layerA": "808 Offset", "layerADecay": 180, "layerALowCut": 80, "punch": 12, "punchTime": 25, "length": 1100, "tone": 0, "cutoff": 900, "sigh": 30, "vary": 30, "glue": 40, "translate": 25, "output": 1.8}, "Round bass with an 808 front."],
-  ["Moombah Reese", "Hybrid Dembow", {"layerA": "Reese Faith", "layerALowCut": 140, "layerADecay": 1000, "layerAWidth": 70, "punch": 12, "length": 1000, "drive": 6, "driveMode": 1, "vary": 30, "glue": 40, "translate": 30, "output": 2.7}, "A short reese bite for moombah and dembow."],
-  ["Brooding Bounce", "Hybrid Dembow", {"layerA": "Bass Brooding", "layerALowCut": 140, "layerADecay": 1400, "layerAWidth": 80, "punch": 12, "length": 1300, "vary": 30, "glue": 40, "translate": 25, "output": 1}, "Wide Brooding bass, short and bouncy."],
-  ["Layer Cake", "Game Changers", {"layerA": "808 Heavyweight", "layerADecay": 160, "layerB": "Reese Punchy", "layerBAttack": 60, "layerBDecay": 2600, "layerBLowCut": 140, "layerBLevel": -4, "layerBWidth": 75, "punch": 10, "length": 2800, "drive": 6, "driveMode": 1, "split": 100, "sigh": 35, "translate": 25, "glue": 35, "output": 1.5}, "The Heavyweight 808 hands its tail to the Punchy reese."],
-  ["Frozen Whale", "Game Changers", {"layerA": "Fusion Frozen Whale", "layerALevel": -1, "layerAWidth": 90, "punch": 8, "length": 3200, "sigh": 40, "glide": 140, "translate": 20, "glue": 30, "output": -3.6}, "Fusion: the Whale reese frozen in time over an 808."],
-  ["Eternity Pluck", "Game Changers", {"layerA": "Fusion Eternity Pluck", "layerALowCut": 90, "punch": 9, "length": 2600, "drive": 6, "driveMode": 1, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": 0.1}, "Fusion: an endless reese forced into the shape of an 808."],
-  ["Brooding Ring", "Game Changers", {"layerA": "Fusion Brooding Ring", "layerALowCut": 130, "layerADecay": 2200, "layerAWidth": 80, "layerALevel": -3, "punch": 10, "length": 2400, "translate": 20, "glue": 35, "output": -0.3}, "Fusion: the Brooding bass ring-modulated into metal over a clean sub."],
-  ["Drillbow", "Game Changers", {"layerA": "808 Heavyweight", "layerADecay": 900, "glide": 110, "glideMode": 1, "retrigger": 1, "punch": 10, "punchTime": 25, "length": 900, "snap": 55, "vary": 30, "drive": 14, "driveMode": 1, "split": 100, "translate": 40, "glue": 45, "output": 2.1}, "Drill slides in a dembow pocket: short, sliding, knocking on every note."],
-  ["Talking Grit", "Game Changers", {"layerA": "Fusion Talking 808", "layerALowCut": 100, "layerB": "Fusion Grit Stack", "layerBLowCut": 200, "layerBLevel": -6, "glide": 160, "glideMode": 1, "punch": 8, "length": 2400, "drive": 14, "driveMode": 3, "driveMix": 60, "cutoff": 2200, "resonance": 30, "split": 110, "translate": 35, "glue": 40, "output": 1.4}, "Two fusions stacked and filtered: a vocal growl that slides."],
-  ["Sample Only Heavyweight", "Game Changers", {"layerA": "808 Heavyweight", "engine": -48, "glide": 120, "punch": 0, "translate": 25, "glue": 25, "output": -4.7}, "Engine off: the Heavyweight 808 itself, auto-tuned on every key and sliding."],
-  ["Grit Stack Raw", "Game Changers", {"layerA": "Fusion Grit Stack", "engine": -48, "glide": 150, "glideMode": 1, "translate": 30, "glue": 35, "output": -2.4}, "Engine off: the Grit Stack fusion, playable and in tune."],
+  ["Soft Boom", "Clean", {"blendSound": "808 Offset", "blend": 60, "punch": 5, "punchTime": 80, "attack": 6, "tone": 10, "click": 0, "drive": 2, "length": 4000, "analog": 40, "glue": 25, "translate": 25, "output": -0.8}, "Round and warm, no knock. Sits under vocals."],
+  ["R&B Sub", "Clean", {"blendSound": "808 Standard", "blend": 60, "punch": 3, "tone": 10, "click": 5, "drive": 3, "glue": 30, "length": 3500, "sustain": 40, "glide": 120, "analog": 25, "translate": 30, "output": -1.8}, "Smooth sustained sub with gentle slides."],
+  ["Long Trap 808", "Trap", {"blendSound": "808 Heavyweight", "blend": 70, "punch": 12, "punchTime": 40, "length": 3500, "glide": 120, "drive": 9, "glue": 35, "translate": 30, "click": 10, "velPunch": 30, "analog": 15, "output": -2.1}, "The classic long trap tail. Overlap notes to slide."],
+  ["Trap Classic", "Trap", {"blendSound": "808 Standard", "blend": 70, "punch": 14, "punchTime": 50, "length": 2800, "glide": 100, "drive": 10, "tone": 20, "translate": 35, "glue": 35, "velPunch": 30, "split": 90, "output": 0.7}, "Punchy, slightly driven, heard on phones."],
+  ["Club Trap", "Trap", {"blendSound": "808 Cyclical", "blend": 70, "punch": 16, "punchTime": 35, "length": 2400, "click": 25, "drive": 14, "driveMode": 1, "split": 100, "translate": 40, "glue": 45, "velPunch": 40, "output": 2.1}, "Hard knock and Tube grit with a clean sub under it."],
+  ["Glide Machine", "Trap", {"blendSound": "808 Offset", "blend": 70, "glide": 180, "glideMode": 1, "length": 4000, "sustain": 30, "drive": 12, "driveMode": 1, "translate": 40, "split": 100, "glue": 35, "output": -0.5}, "Slides into every note. Sustains while held."],
+  ["Deep Tail", "Trap", {"blendSound": "808 Offset", "blend": 70, "punch": 9, "length": 7000, "sub": 25, "drive": 6, "release": 400, "analog": 20, "glue": 30, "translate": 35, "output": -1.6}, "Seven-second tail with an octave-down sub."],
+  ["Southern Boom", "Trap", {"blendSound": "808 Heavyweight", "blend": 70, "punch": 10, "length": 5000, "sub": 15, "drive": 10, "driveMode": 1, "translate": 30, "analog": 35, "glue": 40, "split": 90, "output": 0.5}, "Warm Tube boom with analog drift."],
+  ["Velvet Trap", "Trap", {"blendSound": "808 Standard", "blend": 70, "punch": 8, "length": 3000, "tone": 10, "drive": 4, "glue": 25, "analog": 30, "translate": 35, "output": -1}, "Soft-edged trap 808 for melodic beats."],
+  ["Drill Slide", "Drill", {"blendSound": "808 Heavyweight", "blend": 70, "glide": 220, "glideMode": 1, "bendRange": 12, "punch": 7, "length": 2600, "drive": 14, "driveMode": 2, "tone": 25, "translate": 45, "split": 110, "glue": 40, "output": 0.3}, "Long slides into every note, Hard drive, 12-semitone bend."],
+  ["UK Drill", "Drill", {"blendSound": "808 Heavyweight", "blend": 70, "glide": 260, "glideMode": 1, "punch": 6, "length": 2200, "drive": 18, "driveMode": 2, "tone": 30, "translate": 50, "retrigger": 1, "split": 110, "priority": 1, "glue": 40, "output": -0.1}, "Low-note priority, fresh punch on every slide."],
+  ["NY Drill", "Drill", {"blendSound": "808 Cyclical", "blend": 70, "glide": 200, "glideMode": 1, "punch": 10, "length": 1800, "drive": 22, "driveMode": 1, "tone": 25, "translate": 55, "click": 30, "split": 100, "retrigger": 1, "glue": 45, "output": 1.2}, "Dirtier and brighter, knocks on every slide."],
+  ["Low Note Drill", "Drill", {"blendSound": "808 Rum", "blend": 70, "priority": 1, "glide": 180, "length": 2500, "drive": 14, "driveMode": 2, "translate": 45, "split": 110, "glue": 35, "output": 0.4}, "Hold a low note and tap higher ones: the low note wins."],
+  ["Slide Grit", "Drill", {"blendSound": "Bass Reaper", "blend": 70, "glide": 240, "glideMode": 1, "drive": 24, "cutoff": 5000, "translate": 40, "split": 120, "glue": 40, "output": 0}, "Gritty Tape slides with the fizz filtered off."],
+  ["Distorted 808", "Distorted", {"blendSound": "808 Cyclical", "blend": 70, "drive": 26, "driveMode": 1, "tone": 30, "translate": 50, "cutoff": 6000, "glue": 40, "split": 100, "output": 1.1}, "Heavy Tube distortion, clean sub under it."],
+  ["Hard Clip 808", "Distorted", {"blendSound": "Bass Reaper", "blend": 70, "drive": 24, "driveMode": 2, "glue": 20, "click": 25, "split": 90, "cutoff": 9000, "output": -2.3}, "Aggressive clipped edge."],
+  ["Fold Growl", "Distorted", {"blendSound": "Bass Unstable", "blend": 70, "drive": 24, "driveMode": 3, "driveMix": 70, "tone": 20, "cutoff": 3500, "resonance": 25, "split": 110, "output": 0.8}, "Wavefolder growl through a resonant filter."],
+  ["Rage Fuzz", "Distorted", {"blendSound": "Fusion Grit Stack", "blend": 70, "drive": 34, "driveMode": 2, "tone": 40, "translate": 60, "cutoff": 6500, "glue": 45, "split": 90, "width": 30, "output": -1}, "Maximum fuzz for rage beats. Sub stays solid."],
+  ["Tube Warmth", "Distorted", {"blendSound": "808 Standard", "blend": 70, "drive": 15, "driveMode": 1, "driveMix": 60, "tone": 20, "glue": 30, "analog": 20, "translate": 30, "output": -0.4}, "Half clean, half Tube. Thick but polite."],
+  ["Tape Saturated", "Distorted", {"blendSound": "808 Offset", "blend": 70, "drive": 18, "tone": 15, "translate": 30, "glue": 40, "split": 80, "analog": 15, "output": 1.4}, "Tape saturation with a clean low end."],
+  ["Screamer", "Distorted", {"blendSound": "Fusion Talking 808", "blend": 70, "drive": 30, "driveMode": 3, "driveMix": 55, "tone": 35, "cutoff": 2800, "resonance": 40, "split": 120, "output": 1}, "Folded and filtered, almost vocal."],
+  ["Punchy Short", "Short", {"blendSound": "808 Short", "blend": 70, "length": 450, "punch": 18, "punchTime": 30, "click": 35, "drive": 10, "glue": 50, "velPunch": 40, "output": 3.6}, "Short and tight. Velocity sets the knock."],
+  ["Knock", "Short", {"blendSound": "808 Rum", "blend": 70, "punch": 24, "punchTime": 25, "length": 700, "click": 50, "drive": 16, "glue": 60, "split": 90, "velPunch": 40, "output": 5.8}, "Maximum punch. Cuts through any kick."],
+  ["Bounce", "Short", {"blendSound": "808 Short", "blend": 70, "length": 600, "punch": 16, "punchTime": 35, "click": 25, "drive": 10, "glue": 45, "velPunch": 50, "translate": 30, "output": 2.6}, "Bouncy short 808 for up-tempo beats."],
+  ["Detroit Tap", "Short", {"blendSound": "808 Rum", "blend": 70, "length": 350, "punch": 20, "punchTime": 20, "click": 45, "drive": 14, "driveMode": 2, "glue": 55, "translate": 30, "split": 100, "output": 7.1}, "Tapped, Hard-driven, very short."],
+  ["Kick 808", "Short", {"blendSound": "808 Heavyweight", "blend": 70, "punch": 24, "punchTime": 30, "length": 1200, "click": 60, "drive": 12, "glue": 50, "velPunch": 40, "velDrive": 30, "split": 80, "output": 3.1}, "Doubles as the kick. Accents hit harder and dirtier."],
+  ["Melodic Glide", "Melodic", {"blendSound": "808 Offset", "blend": 70, "glide": 140, "length": 3000, "sustain": 50, "tone": 30, "drive": 8, "translate": 45, "analog": 15, "output": -2.6}, "Sustained and bright enough to carry a melody."],
+  ["Bell Sub", "Melodic", {"blendSound": "Reese Faith", "blend": 70, "tone": 60, "punch": 2, "drive": 5, "translate": 50, "length": 2500, "cutoff": 4000, "click": 5, "output": 0.4}, "Bell-like harmonics over the sub."],
+  ["Plucked Bass", "Melodic", {"blendSound": "Bass Perfect Donk", "blend": 70, "length": 800, "tone": 45, "punch": 6, "punchTime": 20, "drive": 10, "driveMode": 1, "cutoff": 2500, "resonance": 30, "velDrive": 40, "translate": 30, "output": 1.9}, "Short pluck with a resonant filter. Accents get dirtier."],
+  ["Log Drum", "Log Drum", {"blendSound": "Bass Perfect Donk", "blend": 70, "tune": 12, "length": 320, "punch": 9, "punchTime": 14, "click": 55, "tone": 60, "drive": 6, "cutoff": 1500, "resonance": 45, "glide": 60, "glideMode": 1, "translate": 30, "glue": 40, "output": 3.5}, "Amapiano log drum. Play from C1; it sounds an octave up."],
+  ["Log Drum Deep", "Log Drum", {"blendSound": "Bass Perfect Donk", "blend": 70, "tune": 7, "length": 450, "punch": 7, "punchTime": 18, "click": 45, "tone": 50, "drive": 4, "cutoff": 1100, "resonance": 40, "glide": 80, "glideMode": 1, "glue": 35, "translate": 20, "output": 3.5}, "Darker, longer log drum."],
+  ["Log Drum Bright", "Log Drum", {"blendSound": "808 Short", "blend": 70, "tune": 12, "length": 260, "punch": 12, "punchTime": 10, "click": 70, "tone": 70, "drive": 10, "cutoff": 2400, "resonance": 50, "glide": 50, "glideMode": 1, "translate": 40, "glue": 40, "output": 2.9}, "Bright log drum that cuts through."],
+  ["Amapiano Slide", "Log Drum", {"blendSound": "Bass Perfect Donk", "blend": 70, "tune": 12, "length": 380, "punch": 8, "punchTime": 15, "click": 50, "tone": 55, "cutoff": 1400, "resonance": 42, "glide": 140, "glideMode": 1, "retrigger": 1, "glue": 35, "output": 2.8}, "Log drum with long slides and a fresh hit on each."],
+  ["Wide Character", "Wide", {"blendSound": "Reese Faith", "blend": 70, "width": 60, "tone": 30, "drive": 14, "driveMode": 1, "translate": 35, "split": 100, "output": 1.6}, "Wide Tube harmonics; the sub stays mono."],
+  ["Stereo Grit", "Wide", {"blendSound": "Reese Toronto", "blend": 70, "width": 70, "drive": 20, "driveMode": 1, "tone": 35, "translate": 45, "split": 110, "glue": 40, "output": 1.5}, "Wide and gritty for big choruses."],
+  ["Wide Fold", "Wide", {"blendSound": "Bass Brooding", "blend": 70, "width": 50, "drive": 22, "driveMode": 3, "driveMix": 65, "cutoff": 3800, "resonance": 20, "split": 110, "output": 0.3}, "Wide wavefolder texture."],
+  ["Phone Ready", "Mix Ready", {"blendSound": "808 Cyclical", "blend": 70, "translate": 80, "drive": 12, "tone": 35, "click": 30, "split": 100, "glue": 40, "output": 2.3}, "Built to be heard on phone speakers."],
+  ["Heard Everywhere", "Mix Ready", {"blendSound": "808 Standard", "blend": 70, "translate": 65, "split": 100, "drive": 10, "glue": 45, "tone": 25, "analog": 10, "output": 2.6}, "Balanced for phones, laptops and clubs."],
+  ["808 Classic", "Basic 808", {"blendSound": "808 Standard", "blend": 70, "punch": 6, "punchTime": 25, "snap": 60, "sigh": 55, "vary": 35, "velLength": 60, "length": 1900, "tone": 12, "toneDecay": 45, "click": 18, "drive": 4, "analog": 30, "glue": 20, "translate": 25, "output": -0.5}, "The hardware 808: snap, a slow sigh, every hit slightly different."],
+  ["808 Long Decay", "Basic 808", {"blendSound": "808 Offset", "blend": 70, "punch": 7, "punchTime": 30, "snap": 50, "sigh": 60, "vary": 30, "velLength": 40, "length": 5800, "release": 300, "tone": 10, "toneDecay": 55, "click": 12, "drive": 5, "analog": 35, "glue": 25, "translate": 30, "output": -2.3}, "The long-decay mod: a tail that rings for bars."],
+  ["808 Short Tight", "Basic 808", {"blendSound": "808 Short", "blend": 70, "punch": 9, "punchTime": 22, "snap": 70, "sigh": 35, "vary": 30, "velLength": 40, "length": 480, "click": 30, "drive": 8, "glue": 45, "translate": 25, "output": 3.8}, "Short and tight with the circuit's snap."],
+  ["808 Accent Boom", "Basic 808", {"blendSound": "808 Heavyweight", "blend": 70, "punch": 10, "punchTime": 35, "snap": 55, "sigh": 70, "vary": 30, "velLength": 85, "velPunch": 55, "velDrive": 30, "length": 2700, "tone": 15, "toneDecay": 40, "drive": 8, "driveMode": 1, "split": 90, "glue": 30, "translate": 30, "output": 0.5}, "Play with velocity: accents hit harder, sigh more and ring longer."],
+  ["808 Tuned Bass", "Basic 808", {"blendSound": "808 Offset", "blend": 70, "punch": 8, "snap": 40, "sigh": 30, "vary": 20, "length": 3200, "sustain": 35, "glide": 110, "tone": 18, "toneDecay": 50, "drive": 6, "analog": 20, "glue": 30, "translate": 35, "output": -1.9}, "Holds while you play, for melodic bass lines."],
+  ["808 Warm Tape", "Basic 808", {"blendSound": "808 Standard", "blend": 70, "punch": 9, "snap": 45, "sigh": 45, "vary": 35, "velLength": 40, "length": 2600, "tone": 25, "toneDecay": 65, "drive": 12, "split": 90, "analog": 40, "glue": 30, "translate": 30, "output": 0.3}, "Tape warmth that darkens as the note fades."],
+  ["808 Driven", "Basic 808", {"blendSound": "808 Cyclical", "blend": 70, "punch": 11, "snap": 50, "sigh": 40, "vary": 30, "velLength": 40, "length": 2400, "tone": 25, "toneDecay": 30, "drive": 20, "driveMode": 1, "split": 100, "glue": 35, "translate": 40, "output": 0.6}, "Tube-driven 808 with a clean sub and a live feel."],
+  ["808 Sine Snap", "Basic 808", {"blendSound": "808 Offset", "blend": 70, "punch": 3, "snap": 65, "sigh": 50, "vary": 15, "tone": 0, "click": 0, "drive": 0, "glue": 15, "length": 3000, "translate": 20, "output": -0.5}, "A clean sine with only the circuit's snap and sigh."],
+  ["Heavyweight Hybrid", "Hybrid Trap", {"blendSound": "808 Heavyweight", "blend": 85, "punch": 10, "snap": 40, "sigh": 35, "vary": 25, "length": 2600, "glide": 110, "drive": 6, "translate": 30, "glue": 30, "output": -1.2}, "The engine's wave merged with the Heavyweight 808. Plays in tune on every key."],
+  ["Glass Top Boom", "Hybrid Trap", {"blendSound": "Reese Faith", "blend": 85, "punch": 10, "length": 3200, "sigh": 40, "vary": 20, "tone": 15, "translate": 25, "glue": 30, "output": -1.3}, "The engine's sine merged with the Faith reese: shimmer inside a long, clean boom."],
+  ["Thick Standard", "Hybrid Trap", {"blendSound": "808 Standard", "blend": 85, "punch": 10, "length": 2100, "tone": 20, "toneDecay": 40, "drive": 9, "driveMode": 1, "split": 90, "snap": 35, "sigh": 35, "vary": 25, "translate": 30, "glue": 35, "output": 1.4}, "Merged with the Standard 808, thickened with Tube drive over a clean sub."],
+  ["Cyclical Phone Killer", "Hybrid Trap", {"blendSound": "808 Cyclical", "blend": 85, "punch": 9, "length": 2600, "drive": 14, "split": 100, "translate": 60, "snap": 35, "vary": 25, "glue": 35, "output": 0.7}, "Merged with the Cyclical 808, plus Translate: follows on any phone speaker."],
+  ["Octave Ghost", "Hybrid Trap", {"blendSound": "808 Offset", "blend": 85, "punch": 9, "length": 3000, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": -0.9}, "Merged with the Offset 808: a round boom with a ghost of its overtones."],
+  ["Eternity Pad 808", "Hybrid Trap", {"blendSound": "Reese Eternity", "blend": 85, "punch": 10, "length": 3600, "click": 20, "sigh": 40, "translate": 20, "glue": 30, "output": -1.6}, "Merged with the Eternity reese: an airy, moving tone on a deep 808."],
+  ["Heavy Reese", "Hybrid Trap", {"blendSound": "Fusion Heavy Reese", "blend": 85, "punch": 8, "length": 3000, "glide": 120, "drive": 6, "driveMode": 1, "split": 90, "sigh": 35, "vary": 25, "translate": 25, "glue": 35, "output": 1}, "Merged with the Heavy Reese fusion: the Heavyweight front with a reese growl in its tail."],
+  ["Talking 808", "Hybrid Trap", {"blendSound": "Fusion Talking 808", "blend": 85, "punch": 9, "length": 2600, "drive": 8, "driveMode": 1, "split": 100, "sigh": 40, "vary": 25, "translate": 30, "glue": 35, "output": 1.3}, "Merged with the Talking 808 fusion: the tone talks as it rings."],
+  ["UK Slide Hybrid", "Hybrid Drill", {"blendSound": "808 Heavyweight", "blend": 85, "glide": 220, "glideMode": 1, "priority": 1, "retrigger": 1, "punch": 6, "length": 2400, "drive": 14, "driveMode": 2, "split": 110, "snap": 35, "vary": 25, "translate": 45, "glue": 40, "output": 0.2}, "Merged with the Heavyweight 808, sliding on every note; low note wins."],
+  ["Dark Reese Drill", "Hybrid Drill", {"blendSound": "Reese Toronto", "blend": 85, "glide": 200, "glideMode": 1, "punch": 6, "length": 3000, "click": 25, "drive": 8, "driveMode": 1, "split": 110, "translate": 35, "glue": 35, "output": 1.2}, "Merged with the Toronto reese: a dark growl that slides."],
+  ["NY Grit Slide", "Hybrid Drill", {"blendSound": "Fusion Grit Stack", "blend": 85, "glide": 180, "glideMode": 1, "retrigger": 1, "punch": 8, "length": 2000, "drive": 16, "driveMode": 1, "split": 100, "snap": 40, "vary": 30, "translate": 50, "glue": 45, "output": 0.5}, "Merged with the Grit Stack fusion, knocking on every slide."],
+  ["Whale Slide", "Hybrid Drill", {"blendSound": "Reese Whale", "blend": 85, "glide": 300, "glideMode": 1, "punch": 6, "length": 2600, "translate": 30, "glue": 35, "output": -0.8}, "Merged with the Whale reese, under long slides."],
+  ["Rum Stretch Drill", "Hybrid Drill", {"blendSound": "Fusion Rum Stretch", "blend": 85, "glide": 160, "glideMode": 1, "retrigger": 1, "priority": 1, "punch": 8, "length": 2600, "drive": 12, "driveMode": 2, "split": 100, "snap": 40, "vary": 30, "translate": 40, "glue": 40, "output": 1.3}, "Merged with the Rum Stretch fusion: the Rum's grit in a long tail."],
+  ["Donk Pop", "Hybrid Dembow", {"blendSound": "Bass Perfect Donk", "blend": 85, "punch": 16, "punchTime": 20, "length": 700, "snap": 50, "vary": 30, "drive": 8, "driveMode": 1, "glue": 45, "translate": 35, "output": 2.9}, "Merged with the Perfect Donk bass: a tight, bouncy thump."],
+  ["Perreo Thump", "Hybrid Dembow", {"blendSound": "808 Short", "blend": 85, "punch": 16, "punchTime": 20, "length": 600, "click": 40, "snap": 60, "vary": 30, "velLength": 40, "drive": 10, "driveMode": 1, "glue": 50, "translate": 35, "output": 3.9}, "Merged with the Short 808: a tight thump for the dembow kick."],
+  ["Glass Donk", "Hybrid Dembow", {"blendSound": "Fusion Glass Donk", "blend": 85, "punch": 12, "length": 900, "snap": 40, "vary": 30, "glue": 40, "translate": 30, "output": 1.6}, "Merged with the Glass Donk fusion: a donk with a glassy ring."],
+  ["Reggaeton Round", "Hybrid Dembow", {"blendSound": "808 Offset", "blend": 85, "punch": 12, "punchTime": 25, "length": 1100, "tone": 0, "cutoff": 900, "sigh": 30, "vary": 30, "glue": 40, "translate": 25, "output": 1.8}, "Merged with the Offset 808: a round bass with an 808 front."],
+  ["Moombah Reese", "Hybrid Dembow", {"blendSound": "Reese Faith", "blend": 85, "punch": 12, "length": 1000, "drive": 6, "driveMode": 1, "vary": 30, "glue": 40, "translate": 30, "output": 2.7}, "Merged with the Faith reese: a short reese bite for moombah and dembow."],
+  ["Brooding Bounce", "Hybrid Dembow", {"blendSound": "Bass Brooding", "blend": 85, "punch": 12, "length": 1300, "vary": 30, "glue": 40, "translate": 25, "output": 1}, "Merged with the Brooding bass, short and bouncy."],
+  ["Layer Cake", "Game Changers", {"blendSound": "Fusion Heavy Reese", "blend": 85, "punch": 10, "length": 2800, "drive": 6, "driveMode": 1, "split": 100, "sigh": 35, "translate": 25, "glue": 35, "output": 1.5}, "Merged with the Heavy Reese fusion: an 808 front that turns into a reese."],
+  ["Frozen Whale", "Game Changers", {"blendSound": "Fusion Frozen Whale", "blend": 85, "punch": 8, "length": 3200, "sigh": 40, "glide": 140, "translate": 20, "glue": 30, "output": -1}, "Merged with the Frozen Whale fusion: a reese frozen in time inside an 808."],
+  ["Eternity Pluck", "Game Changers", {"blendSound": "Fusion Eternity Pluck", "blend": 85, "punch": 9, "length": 2600, "drive": 6, "driveMode": 1, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": 0.1}, "Merged with the Eternity Pluck fusion: an endless reese shaped like an 808."],
+  ["Brooding Ring", "Game Changers", {"blendSound": "Fusion Brooding Ring", "blend": 85, "punch": 10, "length": 2400, "translate": 20, "glue": 35, "output": -0.3}, "Merged with the Brooding Ring fusion: metal around a solid note."],
+  ["Drillbow", "Game Changers", {"blendSound": "808 Heavyweight", "blend": 85, "glide": 110, "glideMode": 1, "retrigger": 1, "punch": 10, "punchTime": 25, "length": 900, "snap": 55, "vary": 30, "drive": 14, "driveMode": 1, "split": 100, "translate": 40, "glue": 45, "output": 3.4}, "Drill slides in a dembow pocket, merged with the Heavyweight 808."],
+  ["Talking Grit", "Game Changers", {"blendSound": "Fusion Talking 808", "blend": 85, "glide": 160, "glideMode": 1, "punch": 8, "length": 2400, "drive": 14, "driveMode": 3, "driveMix": 60, "cutoff": 2200, "resonance": 30, "split": 110, "translate": 35, "glue": 40, "output": 1.4}, "Merged with the Talking 808 fusion, folded and filtered: a vocal growl that slides."],
+  ["Heavyweight Wave", "Game Changers", {"blendSound": "808 Heavyweight", "blend": 100, "glide": 120, "punch": 0, "translate": 25, "glue": 25, "output": -0.3}, "The Heavyweight 808's own wave (Blend 100%), auto-tuned and sliding."],
+  ["Grit Stack Wave", "Game Changers", {"blendSound": "Fusion Grit Stack", "blend": 100, "glide": 150, "glideMode": 1, "translate": 30, "glue": 35, "output": -0.6}, "The Grit Stack fusion's own wave (Blend 100%), playable and in tune."],
 ];
 const P = {};               // plain values
 for (const s of SPECS) P[s.id] = s.def;
 for (const k in CHOICES) P[k] = CHOICES[k].def;
 P.clip = 1; P.phone = 0; P.retrigger = 0; P.kickLock = 0; P.phoneModel = 0; P.bendRange = BEND_DEFAULT;
-P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1;
+P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1; P.blendSound = 0;
 const SOUNDS = {};          // decoded layer sounds by name: { mid, side, length, rate, rootNote, rootHz }
 const USER = [null, null];  // "Your sample" per slot
 function layerSample(slot) {
@@ -850,6 +866,7 @@ function engineSettings() {
     outputDb: P.output, kickLock: P.kickLock > 0.5, kickMode: P.kickMode, duckMs: P.duck,
     clip: P.clip > 0.5, phone: false, phoneModel: P.phoneModel, priority: P.priority,
     layers: [layerSettings(0), layerSettings(1)], engineDb: P.engine, phaseLock: P.phaseLock > 0.5, phaseDeg: P.phaseShift,
+    morph: P.blend * 0.01,
     snap: P.snap * 0.01, sigh: P.sigh * 0.01, vary: P.vary * 0.01, velLength: P.velLength * 0.01, toneDecay: P.toneDecay * 0.01,
   };
 }
@@ -865,6 +882,7 @@ class BoomProcessor extends AudioWorkletProcessor {
       const m = ev.data;
       if (m.type === 's') { this.s = m.s; this.e.priority = m.s.priority; }
       else if (m.type === 'layer') this.e.setLayerSample(m.slot, m.sample);
+      else if (m.type === 'morph') this.e.setMorphSource(m.morph);
       else if (m.type === 'panic') { this.q = []; this.e.allNotesOff(); }
       else { this.q.push(m); this.q.sort((a, b) => a.t - b.t); }
     };
@@ -907,6 +925,59 @@ function buildPhoneChain() {
 }
 let drumsOn = true;
 const send = m => { if (node) node.port.postMessage(m); else if (fallback) fallback.handle(m); };
+// ---------- Blend: a sound as single-cycle waves over time (port of Source/WaveAnalysis.h) ----------
+function fftInPlace(re, im, inverse) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = 2 * Math.PI / len * (inverse ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) { let cr = 1, ci = 0;
+      for (let j = 0; j < len / 2; j++) { const a = i + j, b = a + len / 2, vr = re[b] * cr - im[b] * ci, vi = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - vr; im[b] = im[a] - vi; re[a] += vr; im[a] += vi; const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } }
+  }
+}
+function analyseWaves(smp) {
+  const SIZE = 2048, HOP = 0.02, W = 4096, N = 8192, rate = smp.rate, root = smp.rootHz, mid = smp.mid, len = smp.length;
+  const frames = Math.max(1, Math.floor(Math.min(3, (len - W * 0.5) / rate) / HOP)), tables = new Float32Array(frames * SIZE);
+  const re = new Float64Array(N), im = new Float64Array(N), cr = new Float64Array(SIZE), ci = new Float64Array(SIZE), binHz = rate / N;
+  const hann = new Float64Array(W); for (let i = 0; i < W; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (W - 1));
+  let have = false;
+  for (let f = 0; f < frames; f++) {
+    const start = Math.floor(f * HOP * rate); re.fill(0); im.fill(0); let energy = 0;
+    for (let i = 0; i < W; i++) { const x = start + i < len ? mid[start + i] : 0; re[i] = x * hann[i]; energy += x * x; }
+    if (energy < 1e-9 * W) { if (have) tables.copyWithin(f * SIZE, (f - 1) * SIZE, f * SIZE); continue; }
+    fftInPlace(re, im, false);
+    const mag = b => { b = Math.min(N / 2, Math.max(0, b)); return Math.hypot(re[b], im[b]); };
+    let best = Math.floor(0.8 * root / binHz); for (let b = best; b <= Math.floor(2.3 * root / binHz); b++) if (mag(b) > mag(best)) best = b;
+    let f0 = best * binHz; { const a = mag(best - 1), b = mag(best), c = mag(best + 1), d = a - 2 * b + c; if (Math.abs(d) > 1e-12) f0 = (best + 0.5 * (a - c) / d) * binHz; }
+    if (f0 < 10) f0 = root;
+    cr.fill(0); ci.fill(0); let ph1 = 0;
+    for (let k = 1; k <= 48; k++) {
+      if (k * f0 > Math.min(9000, rate * 0.45)) break;
+      const centre = Math.round(k * f0 / binHz), reach = Math.max(1, Math.floor(0.3 * f0 / binHz)); let pk = centre;
+      for (let b = centre - reach; b <= centre + reach; b++) if (mag(b) > mag(pk)) pk = b;
+      const a = mag(pk), ph = Math.atan2(im[Math.min(N / 2, Math.max(0, pk))], re[Math.min(N / 2, Math.max(0, pk))]);
+      if (k === 1) ph1 = ph;
+      const rel = ph - k * ph1 - k * Math.PI / 2;
+      cr[k] = 0.5 * a * Math.cos(rel); ci[k] = 0.5 * a * Math.sin(rel); cr[SIZE - k] = cr[k]; ci[SIZE - k] = -ci[k];
+    }
+    fftInPlace(cr, ci, true);
+    let rms = 0; for (let i = 0; i < SIZE; i++) rms += cr[i] * cr[i]; rms = Math.sqrt(rms / SIZE);
+    if (rms < 1e-12) { if (have) tables.copyWithin(f * SIZE, (f - 1) * SIZE, f * SIZE); continue; }
+    const g = 0.70710678 / rms; for (let i = 0; i < SIZE; i++) tables[f * SIZE + i] = cr[i] * g;
+    if (!have) for (let q = 0; q < f; q++) tables.copyWithin(q * SIZE, f * SIZE, (f + 1) * SIZE);
+    have = true;
+  }
+  return { tables, frames, size: SIZE, hop: HOP };
+}
+function blendSample() { const i = Math.round(P.blendSound); if (i <= 0) return null; if (i === LAYER_USER) return USER[0]; const L = LAYERS[i - 1]; return L ? SOUNDS[L[0]] || null : null; }
+let sentMorph;
+function pushMorph() {
+  const smp = blendSample();
+  if (smp && !smp.waves) smp.waves = analyseWaves(smp);
+  const m = smp ? smp.waves : null;
+  if (m === sentMorph) return; sentMorph = m; send({ type: 'morph', morph: m });
+}
 const sentLayer = [undefined, undefined];
 function pushLayers() {
   for (let slot = 0; slot < 2; slot++) {
@@ -916,7 +987,7 @@ function pushLayers() {
     send({ type: 'layer', slot, sample: smp ? { mid: smp.mid, side: smp.side, length: smp.length, rate: smp.rate, rootNote: smp.rootNote, rootHz: smp.rootHz } : null });
   }
 }
-const pushSettings = () => { pushLayers(); send({ type: 's', s: engineSettings() }); if (typeof drawHybrid === 'function') drawHybrid(); };
+const pushSettings = () => { pushLayers(); pushMorph(); send({ type: 's', s: engineSettings() }); if (typeof drawHybrid === 'function') drawHybrid(); };
 
 async function startAudio() {
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
@@ -938,7 +1009,7 @@ async function startAudio() {
     // Older browsers: same engine on the main thread.
     const eng = new Boom808(ctx.sampleRate); eng.onFrame = f => { frame = Object.assign({}, f); };
     const q = []; let s = engineSettings();
-    fallback = { handle: m => { if (m.type === 's') { s = m.s; eng.priority = m.s.priority; } else if (m.type === 'layer') eng.setLayerSample(m.slot, m.sample); else if (m.type === 'panic') { q.length = 0; eng.allNotesOff(); } else { q.push(m); q.sort((a, b) => a.t - b.t); } } };
+    fallback = { handle: m => { if (m.type === 's') { s = m.s; eng.priority = m.s.priority; } else if (m.type === 'layer') eng.setLayerSample(m.slot, m.sample); else if (m.type === 'morph') eng.setMorphSource(m.morph); else if (m.type === 'panic') { q.length = 0; eng.allNotesOff(); } else { q.push(m); q.sort((a, b) => a.t - b.t); } } };
     const sp = ctx.createScriptProcessor(1024, 1, 2);
     kickSend.connect(sp);
     sp.onaudioprocess = ev => {
@@ -953,7 +1024,7 @@ async function startAudio() {
     sp.connect(master);
   }
   buildSounds();
-  sentLayer[0] = sentLayer[1] = undefined;
+  sentLayer[0] = sentLayer[1] = undefined; sentMorph = undefined;
   pushSettings();
 }
 
@@ -1154,7 +1225,7 @@ function setParam(id, v) {
   if (id === 'phone' || id === 'phoneModel') buildPhoneChain();
   if (knobs[id]) knobs[id].update();
   refreshToggles();
-  if (id === 'layerA' || id === 'layerB') refreshHybrid();
+  if (id === 'layerA' || id === 'layerB' || id === 'blendSound') refreshHybrid();
   else for (const b of document.querySelectorAll('.hy .pill[data-key]')) b.setAttribute('aria-pressed', P[b.dataset.key] > 0.5);
   pushSettings();
 }
@@ -1177,6 +1248,11 @@ function buildKnobs() {
     const row = document.createElement('div'); row.className = 'knobs';
     SPECS.filter(s => s.simple !== undefined).sort((a, b) => a.simple - b.simple).forEach(s => row.appendChild(makeKnob(s)));
     knobArea.appendChild(row);
+    const br = document.createElement('div'); br.className = 'blend-row';
+    br.innerHTML = `<span class="label" style="color:var(--layerA)">808 sound</span><select id="blendSel" aria-label="808 sound the engine blends with"></select><span class="blend-hint" id="blendHint"></span>`;
+    const bk = makeKnob(SPECS.find(s => s.id === 'blend')); bk.classList.add('small'); br.appendChild(bk);
+    knobArea.appendChild(br); fillBlendSel();
+    document.getElementById('blendSel').onchange = e => setParam('blendSound', +e.target.value);
   } else {
     const groups = document.createElement('div'); groups.className = 'groups';
     const block = (title, color, cls) => { const d = document.createElement('div'); d.style.display = 'grid'; d.style.gap = '6px';
@@ -1258,7 +1334,17 @@ function buildHybrid() {
   pack.addEventListener('drop', async e => { e.preventDefault(); pack.classList.remove('drag'); await loadPack([...e.dataTransfer.files]); });
   refreshToggles(); refreshHybrid();
 }
+function fillBlendSel() {
+  const sel = document.getElementById('blendSel'); if (!sel) return;
+  let html = '<option value="0">Pure engine</option>', group = '';
+  LAYERS.forEach(([name, grp], i) => { if (grp !== group) { html += (group ? '</optgroup>' : '') + `<optgroup label="${grp}">`; group = grp; }
+    html += `<option value="${i + 1}">${name}${SOUNDS[name] ? '' : ' (load pack)'}</option>`; });
+  html += '</optgroup>' + (USER[0] ? `<optgroup label="Yours"><option value="${LAYER_USER}">${USER[0].name}</option></optgroup>` : '');
+  sel.innerHTML = html; sel.value = String(Math.round(P.blendSound)); if (!sel.value) sel.value = '0';
+  const h = document.getElementById('blendHint'); if (h) h.textContent = P.blendSound > 0 && !blendSample() ? 'Drop your sound pack on the HYBRID page to hear this blend.' : '';
+}
 function refreshHybrid() {
+  fillBlendSel();
   if (view !== 2) return;
   for (const slot of [0, 1]) {
     const X = slot === 0 ? 'layerA' : 'layerB', sel = document.getElementById(X + 'Sel'); if (!sel) continue;
@@ -1412,13 +1498,13 @@ function loadPreset(i) {
   for (const s of SPECS) P[s.id] = s.def;
   for (const k in CHOICES) P[k] = CHOICES[k].def;
   P.clip = 1; P.retrigger = 0; P.bendRange = BEND_DEFAULT;
-  P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1;
+  P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1; P.blendSound = 0;
   Object.assign(P, BASELINE); Object.assign(P, PRESETS[i][2]); Object.assign(P, keep);
-  for (const X of ['layerA', 'layerB']) if (typeof P[X] === 'string') P[X] = LAYERS.findIndex(L => L[0] === P[X]) + 1;
+  for (const X of ['layerA', 'layerB', 'blendSound']) if (typeof P[X] === 'string') P[X] = LAYERS.findIndex(L => L[0] === P[X]) + 1;
   for (const id in knobs) knobs[id].update();
   refreshToggles(); refreshHybrid(); pushSettings();
-  const needs = [P.layerA, P.layerB].some((v, slot) => v > 0 && !layerSample(slot));
-  if (typeof presetNote !== 'undefined' && presetNote) presetNote.textContent = PRESETS[i][3] + (needs ? '  (Its layers are in your sound pack: drop it on the HYBRID page.)' : '');
+  const needs = [P.layerA, P.layerB].some((v, slot) => v > 0 && !layerSample(slot)) || (P.blendSound > 0 && !blendSample());
+  if (typeof presetNote !== 'undefined' && presetNote) presetNote.textContent = PRESETS[i][3] + (needs ? '  (Its 808 sound is in your sound pack: drop it on the HYBRID page.)' : '');
 }
 presetSel.onchange = () => loadPreset(+presetSel.value);
 const presetNote = document.getElementById('presetNote');
@@ -1561,12 +1647,12 @@ drumsBtn.onclick = () => { drumsOn = !drumsOn; drumsBtn.setAttribute('aria-press
 async function ensurePlaying() { if (!ctx) { startBtn.textContent = 'Starting…'; await startAudio(); startBtn.textContent = 'Audio on'; startBtn.setAttribute('aria-pressed', 'true'); patternBtn.disabled = false; } if (!playing) setPlaying(true); }
 const presetIndex = name => PRESETS.findIndex(p => p[0] === name);
 const TRIES = {
-  phase: () => { const i = presetIndex('Heavyweight Hybrid'); loadPreset(i); presetSel.value = i; setParam('phaseLock', 0);
-    stepHook = s => { if (s === 64) setParam('phaseLock', 1); if (s === 128) stepHook = null; }; },
+  phase: () => { const i = presetIndex('Heavyweight Hybrid'); loadPreset(i); presetSel.value = i; const b = P.blend; setParam('blend', 0);
+    stepHook = s => { if (s === 64) setParam('blend', b); if (s === 128) stepHook = null; }; },
   character: () => { const i = presetIndex('808 Classic'); loadPreset(i); presetSel.value = i; const keep = {}; for (const k of ['snap', 'sigh', 'vary', 'velLength', 'toneDecay']) { keep[k] = P[k]; setParam(k, 0); }
     stepHook = s => { if (s === 64) for (const k in keep) setParam(k, keep[k]); if (s === 128) stepHook = null; }; },
-  hybrid: () => { const i = presetIndex('Layer Cake'); loadPreset(i); presetSel.value = i; const a = P.layerA, b = P.layerB; setParam('layerA', 0); setParam('layerB', 0);
-    stepHook = s => { if (s === 64) { setParam('layerA', a); setParam('layerB', b); } if (s === 128) stepHook = null; }; },
+  hybrid: () => { const i = presetIndex('Layer Cake'); loadPreset(i); presetSel.value = i; const b = P.blend; setParam('blend', 0);
+    stepHook = s => { if (s === 32) setParam('blend', b * 0.5); if (s === 64) setParam('blend', b); if (s === 128) stepHook = null; }; },
   translate: () => { loadPreset(5); presetSel.value = 5; setParam('translate', 0); setParam('phone', 1);
     stepHook = s => { if (s === 64) setParam('translate', 70); if (s === 128) { setParam('phone', 0); stepHook = null; } }; },
   drive: () => { loadPreset(0); presetSel.value = 0; setParam('drive', 18);

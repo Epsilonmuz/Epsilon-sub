@@ -20,6 +20,7 @@
       <FILE id="B8Pr02" name="PluginProcessor.h" compile="0" resource="0" file="Source/PluginProcessor.h"/>
       <FILE id="B8LyLb" name="LayerLibrary.h" compile="0" resource="0" file="Source/LayerLibrary.h"/>
       <FILE id="B8LyBk" name="LayerBank.h" compile="0" resource="0" file="Source/LayerBank.h"/>
+      <FILE id="B8WvAn" name="WaveAnalysis.h" compile="0" resource="0" file="Source/WaveAnalysis.h"/>
       <FILE id="B8HyUi" name="HybridUI.h" compile="0" resource="0" file="Source/HybridUI.h"/>
     </GROUP>
     <GROUP id="B8grRs" name="Resources">

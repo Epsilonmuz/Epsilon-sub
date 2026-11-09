@@ -66,6 +66,7 @@ const std::vector<KnobSpec>& knobSpecs()
         { "layerBWidth", "WIDTH", layerB, -1, palette::layerB, "Layer B stereo (above 150 Hz only)." },
         { "engine", "ENGINE", layerB, -1, palette::magma, "The synth body and click. Off = the layers alone, still tuned and gliding." },
         { "phaseShift", "PHASE", layerB, -1, palette::magma, "Fine phase offset between the engine and Layer A. Phase Lock already lines them up; use this to taste." },
+        { "blend", "BLEND", layerB, 7, palette::layerA, "Merges the engine's wave with the chosen 808 sound's waves: one oscillator, not a layer. 0% = pure engine sine, 100% = the sound's own wave shape and movement, still at the engine's pitch with its punch and glides." },
         { "snap", "SNAP", character, -1, palette::magma, "The hardware 808's attack: for about 6 ms the circuit rings an octave and more higher. Too short to hear as pitch, it gives the hit its crack." },
         { "sigh", "SIGH", character, -1, palette::magma, "The 808's slow pitch settle: up to 3 semitones above the note, falling over about 300 ms. Harder hits sigh more." },
         { "vary", "VARY", character, -1, palette::magma, "No two hardware hits are the same. Small random changes per hit: level, length, punch, tone and a few cents." },
@@ -102,7 +103,7 @@ public:
           kickButton(p, hub),
           keyboard(p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard),
           browser(p),
-          selectorA(p, 0, palette::layerA), selectorB(p, 1, palette::layerB),
+          selectorA(p, 0, palette::layerA), selectorB(p, 1, palette::layerB), selectorBlend(p, 0, palette::layerA, "blendSound"),
           waveA(p, 0, palette::layerA), waveB(p, 1, palette::layerB), envelopeView(p),
           track("TRACK", palette::layerA, *p.params.getParameter("layerATrack"), "TRACK"),
           invert("INVERT", palette::layerA, *p.params.getParameter("layerAInvert"), "INVERTED"),
@@ -142,6 +143,10 @@ public:
         selectorA.onLoadRequest = [this] { chooseSample(0); };
         selectorB.onLoadRequest = [this] { chooseSample(1); };
         selectorA.setTooltip("Layer A: the sample's character over the engine. Click for the list, arrows to step through it.");
+        selectorBlend.setTooltip("The 808 sound the engine's wave is merged with (BLEND sets how much). Every preset picks one from your Cymatics folder.");
+        selectorBlend.emptyText = "Pure engine";
+        selectorBlend.onLoadRequest = [this] { chooseSample(0, true); };
+        addChildComponent(selectorBlend);
         selectorB.setTooltip("Layer B: a second sample for texture, a tail or an octave on top.");
         waveA.setTooltip("Layer A's sample. The bright part is what you hear with the current Start and envelope.");
         waveB.setTooltip("Layer B's sample and its fade.");
@@ -317,13 +322,10 @@ public:
             const auto hint = computerKeys()
                 ? juce::String(juce::CharPointer_UTF8("PLAY: click the keys, or type A W S E D F G\xe2\x80\xa6  \xc2\xb7  Z / X change octave  \xc2\xb7  hold a note and press another to glide"))
                 : juce::String(juce::CharPointer_UTF8("PLAY: click the keys  \xc2\xb7  turn on KEYS (left) to play from your computer keyboard  \xc2\xb7  hold a note and press another to glide"));
-            g.drawText(hint, 22, 650, getWidth() - 44, 18, juce::Justification::centred);
+            g.drawText(hint, 22, 652, getWidth() - 44, 18, juce::Justification::centred);
             g.setColour(palette::layerA);
             g.setFont(font(13.0f, Weight::bold));
-            g.drawText("LAYER", getWidth() / 2 - 170 - 70, 590, 60, 32, juce::Justification::centredRight);
-            g.setColour(palette::dim);
-            g.setFont(font(12.5f, Weight::semibold));
-            g.drawText("more on HYBRID", getWidth() / 2 + 180, 590, 140, 32, juce::Justification::centredLeft);
+            g.drawText("808 SOUND", getWidth() / 2 - 210 - 100, 594, 90, 32, juce::Justification::centredRight);
         }
         if (showHybrid() && !browser.isVisible())
         {
@@ -514,24 +516,25 @@ private:
     bool showHybrid() const { return static_cast<bool>(processor.params.state.getProperty("hybridView", false)); }
     int currentView() const { return showHybrid() ? 2 : showAdvanced() ? 1 : 0; }
 
-    void chooseSample(int slot)
+    void chooseSample(int slot, bool forBlend = false)
     {
         chooser = std::make_unique<juce::FileChooser>(slot == 0 ? "Load a sample into Layer A" : "Load a sample into Layer B",
                                                       lastFolder, "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
         chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-                             [this, slot](const juce::FileChooser& fc)
+                             [this, slot, forBlend](const juce::FileChooser& fc)
                              {
                                  const auto file = fc.getResult();
                                  if (file == juce::File())
                                      return;
                                  lastFolder = file.getParentDirectory();
                                  juce::String error;
-                                 if (!processor.loadUserSample(slot, file, error))
+                                 if (!processor.loadUserSample(slot, file, error, forBlend))
                                      loadError.setText(error, juce::dontSendNotification);
                                  else
                                      loadError.setText({}, juce::dontSendNotification);
                                  selectorA.repaint();
                                  selectorB.repaint();
+                                 selectorBlend.repaint();
                              });
     }
     bool computerKeys() const { return static_cast<bool>(processor.params.state.getProperty("computerKeys", false)); }
@@ -596,7 +599,7 @@ private:
         {
             const auto group = specs[index].group;
             const auto hybridKnob = group >= layerA;
-            const auto visible = !browsing && (hybrid ? hybridKnob : !hybridKnob && (on || specs[index].simpleSlot >= 0));
+            const auto visible = !browsing && (hybrid ? hybridKnob : on ? !hybridKnob : specs[index].simpleSlot >= 0);
             knobs[index]->setVisible(visible);
             labels[index]->setVisible(visible);
         }
@@ -605,7 +608,7 @@ private:
         for (auto* c : std::initializer_list<juce::Component*> { &selectorA, &selectorB, &loadA, &loadB, &waveA, &waveB, &envelopeView,
                                                                 &track, &invert, &phaseLock, &loadError })
             c->setVisible(hybrid && !browsing);
-        selectorA.setVisible(!browsing && (hybrid || !on));   // Simple view gets the Layer A choice too
+        selectorBlend.setVisible(!browsing && !hybrid && !on);   // Simple view: the Blend sound
         layoutKnobs();
         repaint();
     }
@@ -637,13 +640,20 @@ private:
         if (!showAdvanced())
         {
             // Seven big controls; Drive is the hero in the middle. Under them, the Layer A choice.
-            selectorA.setBounds(width / 2 - 170, 590, 340, 32);
+            selectorBlend.setBounds(width / 2 - 210, 594, 340, 32);
             const auto cell = (width - 44) / 7;
             for (std::size_t index = 0; index < specs.size(); ++index)
             {
                 const auto slot = specs[index].simpleSlot;
                 if (slot < 0)
                     continue;
+                if (slot == 7)   // Blend: a small knob beside its sound
+                {
+                    styleKnob(index, false, 80, 18, 12.0f);
+                    knobs[index]->setBounds(selectorBlend.getRight() + 16, 566, 70, 56 + 18);
+                    labels[index]->setBounds(selectorBlend.getRight() + 6, knobs[index]->getBottom() - 2, 90, 14);
+                    continue;
+                }
                 const auto hero = slot == 3;
                 const auto size = hero ? 130 : 88;
                 const auto textHeight = hero ? 26 : 22;
@@ -707,7 +717,7 @@ private:
         const auto& specs = knobSpecs();
         const int leftW = 290;
         const int knobX = 22 + leftW + 14;
-        engineX = width - 22 - 2 * 84;
+        engineX = width - 22 - 3 * 76;
         envX = width / 2 + 10;
 
         // Layer A: selector + LOAD, waveform, Track / Invert / Phase Lock; ten knobs to the right
@@ -742,8 +752,8 @@ private:
             else if (group == layerB)
             {
                 const auto isEngine = slot >= 6;
-                cell = isEngine ? 84 : rowTwoCell;
-                centreX = isEngine ? engineX + 84 * (slot - 6) + 42 : knobX + cell * slot + cell / 2;
+                cell = isEngine ? 76 : rowTwoCell;
+                centreX = isEngine ? engineX + 76 * (slot - 6) + 38 : knobX + cell * slot + cell / 2;
                 top = hybridB + 16;
             }
             else { cell = charCell; centreX = 22 + cell * slot + cell / 2; top = hybridC + 16; }
@@ -785,7 +795,7 @@ private:
     PresetBrowser browser;
     PresetButton presetButton;
     juce::Label kickStatus;
-    LayerSelector selectorA, selectorB;
+    LayerSelector selectorA, selectorB, selectorBlend;
     LayerWave waveA, waveB;
     EnvelopeView envelopeView;
     PillToggle track, invert, phaseLock;

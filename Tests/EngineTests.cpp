@@ -3,6 +3,7 @@
 // v1.1: hybrid layers (tuning, tracking, glide, Phase Lock, low cut, envelope, mono-safe stereo) and 808 character
 // (Snap, Sigh, Vary, Vel > Length, Tone Decay).
 #include "Boom808Engine.h"
+#include "WaveAnalysis.h"
 #include <vector>
 #include <cmath>
 #include <cstdio>
@@ -171,6 +172,47 @@ void hybridTests() {
     CHECK(on < off - 4, "Tone Decay: 2nd harmonic vs body changes %.1f dB over the tail (%.1f dB with Tone Decay off)", on, off); }
 }
 
+// ---- v1.1 Blend: a sample's waves merged into the oscillator
+std::vector<float> harmonicSample(double hz, double seconds, double rate) {   // bright at the start, darker later
+  std::vector<float> x((size_t)(seconds * rate)); double ph = 0;
+  for (size_t i = 0; i < x.size(); ++i) { double t = i / rate; ph += hz / rate; double b = std::exp(-t / 0.5);
+    x[i] = (float)(0.8 * std::exp(-t / 1.5) * (std::sin(2 * PI * ph) + 0.5 * b * std::sin(4 * PI * ph + 0.7) + 0.3 * b * std::sin(6 * PI * ph + 1.9))); }
+  return x; }
+double harmonicLevel(const std::vector<float>& x, double sr, int a, int n, double f) {
+  std::complex<double> acc = 0; for (int i = 0; i < n; ++i) { double w = 0.5 - 0.5 * std::cos(2 * PI * i / n); acc += w * (double)x[a + i] * std::polar(1.0, -2 * PI * f * (a + i) / sr); }
+  return std::abs(acc); }
+double harmonicPhase(const std::vector<float>& x, double sr, int a, int n, double f) {
+  std::complex<double> acc = 0; for (int i = 0; i < n; ++i) acc += (double)x[a + i] * std::polar(1.0, -2 * PI * f * (a + i) / sr); return std::arg(acc); }
+void blendTests() {
+  const double sr = 48000, rate = 44100;
+  auto smp = harmonicSample(32.7032, 3.0, rate);
+  auto tables = wave::analyse(smp.data(), (int)smp.size(), rate, 32.7032);
+  MorphSource ms; ms.tables = tables.data(); ms.frames = (int)tables.size() / wave::tableSize; ms.size = wave::tableSize; ms.hopSeconds = wave::hopSeconds;
+  // 1. analysis: the first wave holds the sample's 2nd/3rd harmonic levels; later waves are darker
+  { std::vector<float> one(tables.begin(), tables.begin() + wave::tableSize), late(tables.begin() + 60 * wave::tableSize, tables.begin() + 61 * wave::tableSize);
+    auto h = [&](const std::vector<float>& t, int k) { std::complex<double> a = 0; for (int i = 0; i < wave::tableSize; ++i) a += (double)t[i] * std::polar(1.0, -2 * PI * k * i / wave::tableSize); return std::abs(a); };
+    double r2 = 20 * std::log10(h(one, 2) / h(one, 1)), r3 = 20 * std::log10(h(one, 3) / h(one, 1)), r2late = 20 * std::log10(h(late, 2) / h(late, 1));
+    CHECK(std::abs(r2 - 20 * std::log10(0.5 * std::exp(-0.046))) < 1.5 && std::abs(r3 - 20 * std::log10(0.3 * std::exp(-0.046))) < 1.5 && r2late < r2 - 15,
+          "wave analysis: %d waves; 2nd/3rd harmonic %.1f / %.1f dB at the start (sample: -6.4 / -10.9), 2nd %.1f dB at 1.2 s", ms.frames, r2, r3, r2late); }
+  auto run = [&](float morph, int note) { Settings s = clean(); s.morph = morph; s.lengthMs = 8000; s.sustain = 1;
+    Engine e; e.prepare(sr); e.setMorphSource(&ms); Out o; int n = (int)(sr * 1.4); o.l.resize(n); o.r.resize(n);
+    for (int p = 0; p < n; p += 64) { if (p == 0) e.noteOn(note, 1.0f); e.render(o.l.data() + p, o.r.data() + p, std::min(64, n - p), s); } return o; };
+  // 2. Blend 100%: plays the sample's wave at the engine's pitch, in tune, with its harmonic recipe
+  { auto o = run(1.0f, 36); const int a = (int)(0.03 * sr), n = 8192; double f = freqOf(o.l, sr, (int)(0.3 * sr), (int)(1.3 * sr));
+    double r2 = 20 * std::log10(harmonicLevel(o.l, sr, a, n, 2 * 65.406) / harmonicLevel(o.l, sr, a, n, 65.406));
+    CHECK(std::abs(1200 * std::log2(f / 65.406)) < 1.0 && std::abs(r2 + 7.0) < 2.5, "Blend 100%%: plays at %.3f Hz with the sample's 2nd harmonic at %.1f dB", f, r2); }
+  // 3. the sample's wave and the sine share the fundamental's phase: blending never cancels
+  { auto a = run(0.0f, 24), b = run(1.0f, 24), m = run(0.5f, 24); const int s0 = (int)(0.4 * sr), n = 24000;
+    double dph = std::remainder(harmonicPhase(a.l, sr, s0, n, 32.7032) - harmonicPhase(b.l, sr, s0, n, 32.7032), 2 * PI) * 180 / PI;
+    double la = harmonicLevel(a.l, sr, s0, n, 32.7032), lm = harmonicLevel(m.l, sr, s0, n, 32.7032), lb = harmonicLevel(b.l, sr, s0, n, 32.7032);
+    CHECK(std::abs(dph) < 10 && lm > 0.97 * std::min(la, lb), "Blend 50%%: fundamental %.1f deg from the sine's, level %.2f of the smaller source (no cancellation)", dph, lm / std::min(la, lb)); }
+  // 4. Blend 0% is exactly the plain engine
+  { auto a = run(0.0f, 36); Settings s = clean(); s.lengthMs = 8000; s.sustain = 1;
+    auto b = runL(sr, 1.4, s, nullptr, [&](Engine& e, int p) { if (p == 0) e.noteOn(36, 1.0f); });
+    double d = 0; for (size_t i = 0; i < a.l.size(); ++i) d = std::max(d, (double)std::abs(a.l[i] - b.l[i]));
+    CHECK(d < 1e-6, "Blend 0%%: identical to the engine alone (largest difference %.1e)", d); }
+}
+
 int main() {
   for (double sr : { 44100.0, 48000.0, 96000.0 }) {
     for (int note : { 24, 36, 48 }) {
@@ -334,6 +376,7 @@ int main() {
     CHECK(phone < -40 && laptop < -25 && buds < -1 && buds > -12 && car > 3,
           "Phone Check at 44 Hz: Phone %.1f dB, Laptop %.1f dB, Earbuds %.1f dB, Car %+.1f dB", phone, laptop, buds, car); }
   hybridTests();
+  blendTests();
   // CPU: a busy 808 line, all effects on
   { Settings s; s.translate = 60; s.glue = 60; s.width = 50; s.cutoffHz = 3000; s.resonance = 0.3f; s.driveDb = 18;
     Engine e; e.prepare(48000); std::vector<float> l(256), r(256); const int blocks = 48000 * 20 / 256;

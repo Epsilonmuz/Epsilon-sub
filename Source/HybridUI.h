@@ -64,9 +64,10 @@ private:
 class LayerSelector final : public juce::Component, public juce::SettableTooltipClient
 {
 public:
-    LayerSelector(Epsilon808AudioProcessor& p, int slotIndex, juce::Colour accentColour)
+    LayerSelector(Epsilon808AudioProcessor& p, int slotIndex, juce::Colour accentColour, const char* paramId = nullptr)
         : processor(p), slot(slotIndex), accent(accentColour),
-          attachment(*p.params.getParameter(slotIndex == 0 ? "layerA" : "layerB"), [this](float v) { index = juce::roundToInt(v); repaint(); })
+          attachment(*p.params.getParameter(paramId != nullptr ? paramId : (slotIndex == 0 ? "layerA" : "layerB")),
+                     [this](float v) { index = juce::roundToInt(v); repaint(); })
     {
         attachment.sendInitialUpdate();
     }
@@ -127,7 +128,7 @@ private:
     void set(int i) { attachment.setValueAsCompleteGesture(static_cast<float>(i)); }
     juce::String displayName() const
     {
-        if (index <= 0) return "No layer";
+        if (index <= 0) return emptyText;
         if (index == Epsilon808AudioProcessor::userLayerIndex())
         {
             const auto user = processor.getUserSampleName(slot);
@@ -147,6 +148,8 @@ private:
     juce::ParameterAttachment attachment;
     int index = 0;
     bool hover = false;
+public:
+    juce::String emptyText { "No layer" };
 };
 
 // Reads the controls the views draw, and says when any of them changed.

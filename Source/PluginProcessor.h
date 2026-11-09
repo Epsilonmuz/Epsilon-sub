@@ -89,9 +89,10 @@ public:
     static juce::StringArray layerChoices(int slot);
     static int layerIndexOf(const char* name);
     static int userLayerIndex() { return LayerBank::get().size() + 1; }
-    bool loadUserSample(int slot, const juce::File& file, juce::String& error);
+    bool loadUserSample(int slot, const juce::File& file, juce::String& error, bool forBlend = false);
     juce::String getUserSampleName(int slot) const;
     const DecodedLayer* layerFor(int slot) const;   // what the slot plays now (for the waveform), or null
+    const DecodedLayer* blendSoundFor() const;      // the sound the engine's wave blends into, or null
 
     // Settings that belong to the session, not to the sound: presets and A/B leave them alone.
     static bool isSessionParameter(const juce::String& id);
