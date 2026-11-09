@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* Layout: the plugin panel on a dark bench. Transport strip, then cone + tail side by side
    (stacked on phones), mode row, knobs, keyboard. Single dark look on purpose: it matches the plugin. */
@@ -17,6 +18,8 @@
   --magma: #ff4d2e;    /* the 808 itself */
   --ember: #ff9a3c;    /* drive */
   --glass: #6fe3d1;    /* Translate and Phone Check */
+  --layerA: #b79cff;   /* Layer A: the sample's character */
+  --layerB: #7fb2ff;   /* Layer B: texture */
   --display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
   color-scheme: dark;
@@ -118,6 +121,34 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
 .try .btn { justify-self: start; font-size: 13px; padding: 6px 12px; }
 .note { color: var(--dim); font-size: 13px; margin: 0; }
 
+/* v1.1 Hybrid view */
+.hy { display: grid; gap: 12px; }
+.hy-row { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.hy-left { display: grid; gap: 8px; min-width: 0; }
+.hy-sel { display: flex; gap: 6px; min-width: 0; }
+.hy-sel select { flex: 1; min-width: 0; font-family: var(--display); font-weight: 600; font-size: 15px; background: var(--plot); border: 1px solid var(--edge); border-radius: 8px; padding: 7px 10px; color: var(--text); }
+.hy-sel select.on { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 12%, var(--plot)); }
+.hy-sel .btn { padding: 6px 10px; font-size: 12.5px; }
+.hy canvas.wave { display: block; width: 100%; height: 48px; background: var(--plot); border: 1px solid var(--edge); border-radius: 8px; }
+.hy canvas.env { display: block; width: 100%; height: 108px; background: var(--plot); border: 1px solid var(--edge); border-radius: 8px; }
+.hy .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.hy .pills .pill { padding: 4px 11px; font-size: 12.5px; }
+.knobs.layerA { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.knobs.layerB { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.knobs.eng { grid-template-columns: repeat(2, minmax(0, 84px)); }
+.knobs.char { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.hy-b { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; }
+.hy-c { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.pack { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; border: 1px dashed var(--dim); border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 13.5px; }
+.pack.drag { border-color: var(--layerA); background: color-mix(in srgb, var(--layerA) 8%, transparent); }
+.pack strong { color: var(--text); font-family: var(--display); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; }
+.pack .status { color: var(--text); }
+.layer-hint { color: var(--ember); font-size: 13px; min-height: 1.1em; }
+@media (max-width: 760px) {
+  .hy-row, .hy-b, .hy-c { grid-template-columns: minmax(0, 1fr); }
+  .knobs.layerA { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .knobs.layerB { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 760px) {
   .views { grid-template-columns: minmax(0, 1fr); }
   .knobs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -136,7 +167,7 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
     <div class="brand">
       <span class="maker">EΣ Epsilon Sounds</span>
       <h1>808 <span class="dot" aria-hidden="true"></span><small>Lab</small></h1>
-      <p class="lede">The Epsilon 808 engine running in your browser: same oscillator, punch, glide, drive, Translate, Glue and Phone Check as the plugin. Start the audio, then play the keys or run the trap pattern.</p>
+      <p class="lede">The Epsilon 808 v1.1 engine running in your browser: the same engine, sample layers, Phase Lock and 808 character as the plugin. Start the audio, then play the keys or run the trap pattern. For the hybrid sounds, drop your sound pack on the HYBRID page.</p>
     </div>
     <div class="transport">
       <button class="btn hero" id="start" aria-pressed="false">Start audio</button>
@@ -154,7 +185,7 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
       <div class="view"><canvas id="tail" aria-label="Level and pitch over the last four seconds"></canvas></div>
     </div>
     <div class="row">
-      <button class="pill" id="advanced" aria-pressed="false">Show advanced</button>
+      <div class="seg" id="viewSeg" style="--accent: var(--layerA)" role="group" aria-label="View"><button data-v="0">Simple</button><button data-v="1">Advanced</button><button data-v="2">Hybrid</button></div>
       <div class="seg" id="driveMode" style="--accent: var(--ember)" role="group" aria-label="Drive mode"></div>
       <div class="seg" id="glideMode" role="group" aria-label="Glide mode"></div>
       <button class="pill" id="kickLock" style="--c: var(--glass)" aria-pressed="false">Kick lock</button>
@@ -168,6 +199,21 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
   </section>
 
   <section class="tries" aria-label="Things to try">
+    <div class="try">
+      <h3>Phase Lock</h3>
+      <p>Heavyweight Hybrid with the full sample under the engine. One pass with Phase Lock off (the lows fight and thin out), one with it on (they add up). Needs your sound pack.</p>
+      <button class="btn" data-try="phase">Run it</button>
+    </div>
+    <div class="try">
+      <h3>808 character</h3>
+      <p>808 Classic with Snap, Sigh, Vary, Vel &gt; Length and Tone Decay at 0 (the machine), then back on (the hardware).</p>
+      <button class="btn" data-try="character">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Hybrid vs engine</h3>
+      <p>Layer Cake as the engine alone, then with its two layers: the Heavyweight front handing its tail to the Punchy reese. Needs your sound pack.</p>
+      <button class="btn" data-try="hybrid">Run it</button>
+    </div>
     <div class="try">
       <h3>Make it heard on phones</h3>
       <p>Turns Phone Check on with Translate at 0. The 808 almost disappears. Then Translate goes to 70% and the line comes back.</p>
@@ -199,12 +245,13 @@ select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; 
       <button class="btn" data-try="punch">Run it</button>
     </div>
   </section>
-  <p class="note">The pattern is four bars at 140 BPM in C minor (Cm7, Abmaj7, Fm7, G7). All presets are loudness-matched, as in the plugin. Phone Check here filters the whole beat, so you hear the 808 against the drums the way a phone plays them; in the plugin it filters the 808 track. The plugin adds user presets, A/B slots, undo, a loudness meter, pitch-bend and host automation.</p>
+  <p class="note">The pattern is four bars at 140 BPM in C minor (Cm7, Abmaj7, Fm7, G7). All presets are loudness-matched, as in the plugin. Phone Check here filters the whole beat, so you hear the 808 against the drums the way a phone plays them; in the plugin it filters the 808 track. The plugin adds user presets, A/B slots, undo, a loudness meter, pitch-bend and host automation. Sounds you drop here stay in this browser only; nothing is uploaded.</p>
 </div>
 
 <script>
 const ENGINE_SRC = String.raw`
-// Epsilon 808 engine, JavaScript port of Boom808Engine.cpp (same signal path and constants).
+// Epsilon 808 engine, JavaScript port of Boom808Engine.cpp v1.1 (same signal path and constants),
+// including the hybrid sample layers, Phase Lock and the 808 character controls.
 class Svf { constructor() { this.ic1 = 0; this.ic2 = 0; this.low = 0; this.band = 0; this.high = 0; }
   run(x, g, k) {
     const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
@@ -228,7 +275,12 @@ class Halfband {
   }
   clear() { this.h.fill(0); this.pos = 0; }
 }
-function newVoice() { return { phase: 0, subPhase: 0, env: 0, stage: 0, velocity: 1, punchTime: 1e9, clickTime: 1e9, clickNoiseLp: 0, clickPrev: 0, drift: 0 }; }
+function newLayerVoice() { return { pos: 0, env: 0, stage: 0, holdLeft: 0, hp1: new Svf(), hp2: new Svf() }; }
+function newVoice() { return { phase: 0, subPhase: 0, env: 0, stage: 0, velocity: 1, punchTime: 1e9, clickTime: 1e9, clickNoiseLp: 0, clickPrev: 0, drift: 0,
+  varLevel: 1, varLength: 1, varPunch: 1, varTone: 1, varCents: 0, accent: 1, cLen: -1, cDecay: 1, layer: [newLayerVoice(), newLayerVoice()] }; }
+function cloneSvf(f) { const n = new Svf(); n.ic1 = f.ic1; n.ic2 = f.ic2; return n; }
+function cloneVoice(v) { const c = Object.assign({}, v); c.layer = v.layer.map(l => Object.assign({}, l, { hp1: cloneSvf(l.hp1), hp2: cloneSvf(l.hp2) })); return c; }
+const layersDone = v => v.layer[0].stage === 0 && v.layer[1].stage === 0;
 const dbToGain = db => Math.pow(10, db / 20);
 const BW = 1.41421356;
 const logCosh = x => { const a = Math.abs(x); return a > 9 ? a - 0.6931471805599453 : a + Math.log1p(Math.exp(-2 * a)) - 0.6931471805599453; };
@@ -286,14 +338,85 @@ class Boom808 {
     this.noiseSeed = 22222 >>> 0;
     this.win = this.blankWindow(); this.winCount = 0; this.framePeriod = Math.max(1, Math.floor(sr / 60));
     this.onFrame = null;
+    this.layerSrc = [null, null]; this.layerNow = [null, null]; this.layerGain = [1, 1]; this.layerG = [0, 0]; this.engineGain = 1;
+    this.sideHp1 = new Svf(); this.sideHp2 = new Svf();
   }
+  // sample = { mid: Float32Array, side: Float32Array|null, length, rate, rootNote, rootHz } or null
+  setLayerSample(slot, sample) { this.layerSrc[slot] = sample; }
   blankWindow() { return { peakL: 0, peakR: 0, harmonics: 0, lowPeak: 0, gr: 0, duck: 0, kick: false }; }
 
-  startNote(note, velocity, fromSilence) {
+  startNote(note, velocity, fromSilence, s) {
     const v = this.voice;
-    if (v.stage !== 0 && v.env > 0.0005) { this.tail = Object.assign({}, v); this.tailGain = 1; this.tailStep = 1 / (0.005 * this.srOs); this.tailNote = this.currentNote; }
+    if (v.stage !== 0 && (v.env > 0.0005 || !layersDone(v))) { this.tail = cloneVoice(v); this.tailGain = 1; this.tailStep = 1 / (0.005 * this.srOs); this.tailNote = this.currentNote; }
     v.phase = 0; v.subPhase = 0; v.env = 0; v.stage = 1; v.velocity = velocity; v.punchTime = 0; v.clickTime = 0; v.clickNoiseLp = v.clickPrev = 0; v.drift = Math.random() * 2 - 1;
     if (fromSilence) { this.currentNote = this.glideFrom = this.targetNote = note; this.glideTotal = 0; }
+    // Vary: per-hit tolerances, as on a hardware 808
+    const vary = Math.min(1, Math.max(0, s.vary)), rnd = () => Math.random() * 2 - 1;
+    v.varLevel = dbToGain(1.5 * vary * rnd()); v.varLength = 1 + 0.15 * vary * rnd(); v.varPunch = 1 + 0.12 * vary * rnd();
+    v.varTone = Math.max(0, 1 + 0.3 * vary * rnd()); v.varCents = 5 * vary * rnd(); v.cLen = -1;
+    this.startLayers(v, s);
+    if (s.phaseLock) { v.phase = this.alignedStartPhase(s, note + s.tuneSemitones + s.fineCents * 0.01, velocity); v.subPhase = 0.5 * v.phase; }
+  }
+  startLayers(v, s) {
+    for (let slot = 0; slot < 2; ++slot) {
+      const smp = this.layerNow[slot];
+      if (!s.layers[slot].on || !smp || smp.length < 8) { v.layer[slot].stage = 0; v.layer[slot].env = 0; continue; }
+      const lv = newLayerVoice(); lv.stage = 1; lv.pos = Math.max(0, s.layers[slot].startMs * 0.001 * smp.rate); v.layer[slot] = lv;
+    }
+  }
+  layerHz(s, slot, tracked) {
+    const smp = this.layerNow[slot], L = s.layers[slot];
+    const nominal = 440 * Math.pow(2, (smp.rootNote - 69) / 12);
+    const pc = (((smp.rootNote - 24) % 12) + 12) % 12, reference = 24 + Math.round(pc);
+    return nominal * Math.pow(2, (L.track ? tracked - reference + L.tune : L.tune) / 12);
+  }
+  // Phase Lock: start the body on the phase that lines it up with Layer A's fundamental once the punch settles
+  alignedStartPhase(s, semis, velocity) {
+    const smp = this.layerNow[0], L = s.layers[0];
+    if (!smp || !L.on || smp.length < 64 || smp.rootHz <= 1) return 0;
+    const synthHz = 440 * Math.pow(2, (semis - 69) / 12), played = this.layerHz(s, 0, semis);
+    if (Math.abs(Math.log2(played / synthHz)) > 0.25) return 0;
+    const punch = s.punchSemitones * (1 - s.velPunch + s.velPunch * velocity) * this.voice.varPunch;
+    const tau = Math.max(0.002, s.punchMs * 0.001 / 3), T = Math.min(0.15, Math.max(0.02, 4 * tau));
+    let gained = 0;
+    for (let k = 0; k < 256; ++k) {
+      const t = (k + 0.5) * T / 256;
+      const e = punch * Math.exp(-t / tau) + s.snap * 19 * (t < 0.005 ? 1 : Math.exp(-(t - 0.005) / 0.0015)) + s.sigh * 3 * (0.6 + 0.4 * velocity) * Math.exp(-t / 0.11);
+      gained += synthHz * Math.pow(2, e / 12) * (T / 256);
+    }
+    const ratio = played / smp.rootHz, frame = L.startMs * 0.001 * smp.rate + T * smp.rate * ratio;
+    const span = Math.floor(2 * smp.rate / smp.rootHz);
+    let first = Math.floor(frame - 0.5 * span); first = Math.min(Math.max(0, first), Math.max(0, smp.length - span - 1));
+    const w = 2 * Math.PI * smp.rootHz / smp.rate;
+    let S = 0, C = 0;
+    for (let n = first; n < first + span && n < smp.length; ++n) { const x = smp.mid[n]; S += x * Math.sin(w * n); C += x * Math.cos(w * n); }
+    if (S * S + C * C < 1e-12) return 0;
+    let target = smp.rootHz * frame / smp.rate + Math.atan2(C, S) / (2 * Math.PI) + (L.invert ? 0.5 : 0) + s.phaseDeg / 360;
+    const start = target - gained; return start - Math.floor(start);
+  }
+  renderLayers(v, s, dt, step, sideOut) {
+    let mid = 0;
+    const vg = (0.35 + 0.65 * v.velocity) * v.varLevel;
+    for (let slot = 0; slot < 2; ++slot) {
+      const lv = v.layer[slot]; if (lv.stage === 0) continue;
+      const smp = this.layerNow[slot]; if (!smp) { lv.stage = 0; continue; }
+      const L = s.layers[slot];
+      if (v.stage === 3 && lv.stage < 4) lv.stage = 4;
+      if (lv.stage === 1) { lv.env += dt / Math.max(0.0005, L.attackMs * 0.001); if (lv.env >= 1) { lv.env = 1; lv.stage = 2; lv.holdLeft = L.holdMs * 0.001; } }
+      else if (lv.stage === 2) { lv.holdLeft -= dt; if (lv.holdLeft <= 0) lv.stage = 3; }
+      else if (lv.stage === 3) { if (L.decayMs < 9999) lv.env = L.sustain + (lv.env - L.sustain) * Math.exp(-6.9078 * dt / Math.max(0.01, L.decayMs * 0.001)); }
+      else { lv.env *= Math.exp(-6.9078 * dt / Math.max(0.003, L.releaseMs * 0.001)); if (lv.env < 1e-5) { lv.env = 0; lv.stage = 0; continue; } }
+      const i = Math.floor(lv.pos); if (i + 2 >= smp.length) { lv.stage = 0; lv.env = 0; continue; }
+      const f = lv.pos - i;
+      const rd = d => { const y0 = d[Math.max(0, i - 1)], y1 = d[i], y2 = d[i + 1], y3 = d[i + 2];
+        return y1 + 0.5 * f * (y2 - y0 + f * (2 * y0 - 5 * y1 + 4 * y2 - y3 + f * (3 * (y1 - y2) + y3 - y0))); };
+      let x = rd(smp.mid); const sx = smp.side ? rd(smp.side) : 0;
+      lv.pos += step[slot];
+      if (L.lowCutHz > 0) x = lv.hp2.run(lv.hp1.run(x, this.layerG[slot], BW).high, this.layerG[slot], BW).high;
+      const g = this.layerGain[slot] * lv.env * vg * (L.invert ? -1 : 1);
+      mid += x * g; sideOut.v += sx * g * L.width;
+    }
+    return mid;
   }
   choose() { const h = this.held; if (!h.length) return -1; if (this.priority === 0) return h[h.length - 1]; return this.priority === 1 ? Math.min(...h) : Math.max(...h); }
   queue(note, velocity, legato, ret) { this.pending = { note, velocity, legato, ret }; this.sounding = note; }
@@ -352,33 +475,38 @@ class Boom808 {
     this.kickInFrame = true; this.duckFalling = true;
     const v = this.voice; if (v.stage === 0 || v.env < 0.001) return;
     if (Math.min(v.phase, 1 - v.phase) < 30 / 360) return;
-    this.tail = Object.assign({}, v); this.tailGain = 1; this.tailStep = 1 / (0.004 * this.srOs); this.tailNote = this.currentNote;
+    this.tail = cloneVoice(v); this.tailGain = 1; this.tailStep = 1 / (0.004 * this.srOs); this.tailNote = this.currentNote;
+    this.tail.layer[0].stage = this.tail.layer[1].stage = 0;
     v.phase = 0; v.subPhase = 0;
   }
   // per-render constants for the voice (the C++ computes the same values per sample)
   voiceConstants(s, dtOs) {
     const c = this.vc || (this.vc = {});
     c.attackStep = dtOs / Math.max(0.0005 + 0.004 * s.analog, s.attackMs * 0.001);
-    c.decay = Math.exp(-6.9078 * dtOs / Math.max(0.02, s.lengthMs * 0.001));
     c.release = Math.exp(-6.9078 * dtOs / Math.max(0.003, s.releaseMs * 0.001));
-    c.norm = 1 / (1 + 0.55 * s.tone + 0.8 * s.sub);
     c.dt = dtOs;
   }
-  voiceSample(v, s, hz) {
+  voiceSample(v, s, hz, step, sideOut) {
     if (v.stage === 0) return 0;
     const c = this.vc;
     if (v.stage === 1) { v.env += c.attackStep; if (v.env >= 1) { v.env = 1; v.stage = 2; } }
-    else if (v.stage === 2) v.env = s.sustain + (v.env - s.sustain) * c.decay;
-    else { v.env *= c.release; if (v.env < 1e-5) { v.env = 0; v.stage = 0; } }
+    else if (v.stage === 2) {
+      // Vel > Length: like the 808's accent, harder hits ring longer
+      const len = s.lengthMs * 0.001 * v.varLength * (1 - 0.65 * Math.min(1, Math.max(0, s.velLength)) * (1 - v.velocity));
+      if (len !== v.cLen) { v.cLen = len; v.cDecay = Math.exp(-6.9078 * c.dt / Math.max(0.02, len)); }
+      v.env = s.sustain + (v.env - s.sustain) * v.cDecay;
+    }
+    else { v.env *= c.release; if (v.env < 1e-5) { v.env = 0; if (layersDone(v)) v.stage = 0; } }
     const inc = hz / this.srOs;
     v.phase += inc; if (v.phase >= 1) v.phase -= 1;
     const p = 6.283185307179586 * v.phase, sp = Math.sin(p);
     let body = sp;
-    if (s.tone > 0) { const cp = Math.cos(p); body += s.tone * (0.35 * 2 * sp * cp + 0.2 * (3 * sp - 4 * sp * sp * sp)); }
+    const toneNow = s.tone * v.varTone * (s.toneDecay > 0 ? Math.pow(Math.max(v.env, 0), 2.5 * s.toneDecay) : 1);
+    if (toneNow > 0) { const cp = Math.cos(p); body += toneNow * (0.35 * 2 * sp * cp + 0.2 * (3 * sp - 4 * sp * sp * sp)); }
     if (s.sub > 0) { v.subPhase += 0.5 * inc; if (v.subPhase >= 1) v.subPhase -= 1; body += s.sub * 0.8 * Math.sin(6.283185307179586 * v.subPhase); }
     else { v.subPhase += 0.5 * inc; if (v.subPhase >= 1) v.subPhase -= 1; }
-    const vg = 0.35 + 0.65 * v.velocity;
-    let out = body * c.norm * v.env * vg;
+    const vg = (0.35 + 0.65 * v.velocity) * v.varLevel;
+    let out = body / (1 + 0.55 * s.tone * v.varTone + 0.8 * s.sub) * v.env * vg;
     if (v.clickTime < 0.03 && s.click > 0) {
       this.noiseSeed = (Math.imul(this.noiseSeed, 1664525) + 1013904223) >>> 0;
       const noise = ((this.noiseSeed >>> 9) - (1 << 22)) / (1 << 22);
@@ -388,6 +516,8 @@ class Boom808 {
       out += s.click * vg * 0.7 * (bright * 1.6 * Math.exp(-t / 0.003) + 0.6 * blip);
     }
     v.clickTime += c.dt; v.punchTime += c.dt;
+    out *= this.engineGain;
+    if (!layersDone(v)) out += this.renderLayers(v, s, c.dt, step, sideOut);
     return out;
   }
 
@@ -409,19 +539,37 @@ class Boom808 {
     let gA, gC;
     switch (s.phoneModel) { case 1: gA = tw(170); gC = tw(12000); break; case 2: gA = tw(45); gC = tw(14000); break; case 3: gA = tw(70); gC = tw(10000); break; default: gA = tw(320); gC = tw(6000); }
     this.voiceConstants(s, dtOs);
+    for (let slot = 0; slot < 2; ++slot) {
+      if (this.layerSrc[slot] !== this.layerNow[slot]) { this.voice.layer[slot].stage = 0; this.tail.layer[slot].stage = 0; this.layerNow[slot] = this.layerSrc[slot]; }
+      const L = s.layers[slot];
+      this.layerGain[slot] = dbToGain(L.levelDb); this.layerG[slot] = Math.tan(Math.PI * Math.min(2000, Math.max(10, L.lowCutHz)) / this.srOs);
+    }
+    this.engineGain = s.engineDb <= -47.5 ? 0 : dbToGain(s.engineDb);
+    const gSide = tw(150), step = [0, 0], tailStepRate = [0, 0], sideV = { v: 0 }, sideT = { v: 0 };
+    const pitchEnv = vv => { const t = vv.punchTime, tau = Math.max(0.002, s.punchMs * 0.001 / 3);
+      let e = t < 12 * tau ? s.punchSemitones * (1 - s.velPunch + s.velPunch * vv.velocity) * vv.varPunch * Math.exp(-t / tau) : 0;
+      if (s.snap > 0) e += s.snap * 19 * (t < 0.005 ? 1 : Math.exp(-(t - 0.005) / 0.0015));
+      if (s.sigh > 0) e += s.sigh * 3 * (0.6 + 0.4 * vv.velocity) * Math.exp(-t / 0.11);
+      return e; };
     const os = [0, 0, 0, 0], v = this.voice;
     for (let i = start; i < end; ++i) {
       if (this.pending) {
         const pe = this.pending; this.pending = null; const note = pe.note;
         if (!pe.legato) {
           const fromSounding = s.glideMode === 1 && v.stage !== 0 && s.glideMs > 0.5;
-          this.startNote(note, pe.velocity, !fromSounding);
+          this.startNote(note, pe.velocity, !fromSounding, s);
           if (fromSounding) { this.glideFrom = this.currentNote; this.targetNote = note; this.glideElapsed = 0; this.glideTotal = s.glideMs * 0.001; }
         } else if (s.glideMode === 2 || s.glideMs <= 0.5) {
-          if (pe.ret) { this.currentNote = this.glideFrom = this.targetNote = note; this.glideTotal = 0; } else this.startNote(note, pe.velocity, true);
+          if (pe.ret) { this.currentNote = this.glideFrom = this.targetNote = note; this.glideTotal = 0; } else this.startNote(note, pe.velocity, true, s);
         } else {
           this.glideFrom = this.currentNote; this.targetNote = note; this.glideElapsed = 0; this.glideTotal = s.glideMs * 0.001;
-          if (s.retrigger && !pe.ret && v.stage !== 0) { v.punchTime = 0; v.clickTime = 0; v.clickNoiseLp = v.clickPrev = 0; v.velocity = pe.velocity; v.stage = 1; }
+          if (s.retrigger && !pe.ret && v.stage !== 0) {
+            v.punchTime = 0; v.clickTime = 0; v.clickNoiseLp = v.clickPrev = 0; v.velocity = pe.velocity; v.stage = 1;
+            if (!layersDone(v) || s.layers[0].on || s.layers[1].on) {
+              this.tail = cloneVoice(v); this.tail.env = 0; this.tail.stage = 3; this.tailGain = 1; this.tailStep = 1 / (0.005 * this.srOs); this.tailNote = this.currentNote;
+              this.startLayers(v, s);
+            }
+          }
         }
         if (this.releaseAfterPending) { this.releaseAfterPending = false; if (this.held.length === 0 && v.stage !== 0) v.stage = 3; }
       }
@@ -432,18 +580,23 @@ class Boom808 {
         this.currentNote = this.glideFrom + (this.targetNote - this.glideFrom) * e;
       } else this.currentNote = this.targetNote;
 
-      const punchScale = 1 - s.velPunch + s.velPunch * v.velocity;
-      const punchTau = Math.max(0.002, s.punchMs * 0.001 / 3);
-      const punch = v.punchTime < 12 * punchTau ? s.punchSemitones * punchScale * Math.exp(-v.punchTime / punchTau) : 0;
+      const punch = pitchEnv(v);
       this.driftPhase += 0.23 / sr; if (this.driftPhase >= 1) this.driftPhase -= 1;
       const analog = s.analog > 0 ? s.analog * (0.04 * v.drift + 0.015 * Math.sin(2 * Math.PI * this.driftPhase) - (v.stage >= 2 ? 0.3 * (1 - v.env) : 0)) : 0;
-      const semis = this.currentNote + s.tuneSemitones + s.fineCents * 0.01 + punch + analog;
+      const tracked = this.currentNote + s.tuneSemitones + s.fineCents * 0.01 + v.varCents * 0.01;
+      const semis = tracked + punch + analog;
       if (semis !== this.lastSemis) { this.lastSemis = semis; this.lastHz = Math.min(440 * Math.pow(2, (semis - 69) / 12), sr * 0.45); }
       const hz = this.lastHz;
-      let tailHz = 0;
+      let tailHz = 0, tailTracked = 0;
       if (this.tailGain > 0) {
-        const tailPunch = s.punchSemitones * punchScale * Math.exp(-this.tail.punchTime / punchTau);
-        tailHz = Math.min(440 * Math.pow(2, (this.tailNote + s.tuneSemitones + s.fineCents * 0.01 + tailPunch - 69) / 12), sr * 0.45);
+        tailTracked = this.tailNote + s.tuneSemitones + s.fineCents * 0.01 + this.tail.varCents * 0.01;
+        tailHz = Math.min(440 * Math.pow(2, (tailTracked + pitchEnv(this.tail) - 69) / 12), sr * 0.45);
+      }
+      for (let slot = 0; slot < 2; ++slot) {
+        const smp = this.layerNow[slot]; step[slot] = tailStepRate[slot] = 0; if (!smp) continue;
+        const scale = smp.rate / this.srOs / smp.rootHz;
+        if (!layersDone(v)) step[slot] = this.layerHz(s, slot, tracked) * scale;
+        if (this.tailGain > 0 && !layersDone(this.tail)) tailStepRate[slot] = this.layerHz(s, slot, tailTracked) * scale;
       }
       const driveDb = s.driveDb * (1 - s.velDrive + s.velDrive * v.velocity);
       if (driveDb !== this.cDb || s.driveMode !== this.cMode) {
@@ -451,11 +604,15 @@ class Boom808 {
         this.cGain = dbToGain(s.driveMode === 3 ? 0.6 * driveDb : driveDb);
         this.cNorm = s.driveMode === 3 ? 1 : 1 / Math.max(0.05, Math.abs(this.shape(this.cGain, s.driveMode)));
       }
+      let side = 0;
       for (let o = 0; o < 4; ++o) {
-        let x = this.voiceSample(v, s, hz);
-        if (this.tailGain > 0) { x += this.tailGain * this.voiceSample(this.tail, s, tailHz); this.tailGain = Math.max(0, this.tailGain - this.tailStep); }
+        sideV.v = 0; sideT.v = 0;
+        let x = this.voiceSample(v, s, hz, step, sideV);
+        if (this.tailGain > 0) { x += this.tailGain * this.voiceSample(this.tail, s, tailHz, tailStepRate, sideT); side += sideT.v * this.tailGain; this.tailGain = Math.max(0, this.tailGain - this.tailStep); }
+        side += sideV.v;
         os[o] = this.driveSample(x, s);
       }
+      side *= 0.25;
       this.stage1.push(os[0]); this.stage1.push(os[1]); const h0 = this.stage1.output(this.kernel);
       this.stage1.push(os[2]); this.stage1.push(os[3]); const h1 = this.stage1.output(this.kernel);
       this.stage2.push(h0); this.stage2.push(h1); let y = this.stage2.output(this.kernel);
@@ -471,14 +628,18 @@ class Boom808 {
         harm = this.harmLp.run(harm, gHarmLp, 1.4).low;
         y += translate * 2.4 * harm;
       }
+      let glueGain = 1;
       if (glue > 0) {
         const level = Math.abs(y);
         this.compEnv += (level > this.compEnv ? compAttack : compRelease) * (level - this.compEnv);
         const over = gainToDb(this.compEnv) - threshold, target = over > 0 ? over * (1 - 1 / ratio) : 0;
         this.compGainDb += (target > this.compGainDb ? grAttack : grRelease) * (target - this.compGainDb);
-        y *= dbToGain(makeup - this.compGainDb);
+        glueGain = dbToGain(makeup - this.compGainDb); y *= glueGain;
       } else this.compGainDb = 0;
       let l = y, r = y;
+      if (Math.abs(side) + Math.abs(this.sideHp1.ic1) + Math.abs(this.sideHp1.ic2) + Math.abs(this.sideHp2.ic1) + Math.abs(this.sideHp2.ic2) > 1e-12) {
+        const sd = this.sideHp2.run(this.sideHp1.run(side * HEADROOM, gSide, BW).high, gSide, BW).high * glueGain; l += sd; r -= sd;
+      }
       if (width > 0) {
         const high = this.widthHp2.run(this.widthHp.run(y, gWidth, 1.4).high, gWidth, 1.4).high;
         const n = this.widthDelay.length; this.widthDelay[this.widthPos] = high;
@@ -495,7 +656,7 @@ class Boom808 {
       w.harmonics = Math.max(w.harmonics, Math.abs(translate * 1.6 * harm)); w.lowPeak = Math.max(w.lowPeak, Math.abs(lowForCone));
       w.gr = Math.max(w.gr, this.compGainDb); w.duck = Math.max(w.duck, 1 - this.duckGain);
       if (++this.winCount >= this.framePeriod) {
-        w.env = v.env; w.hz = v.stage !== 0 ? hz : 0; w.note = v.stage !== 0 ? semis - punch : -1; w.kick = this.kickInFrame;
+        w.env = Math.max(v.env * Math.min(1, this.engineGain), v.layer[0].env, v.layer[1].env); w.hz = v.stage !== 0 ? hz : 0; w.note = v.stage !== 0 ? semis - punch : -1; w.kick = this.kickInFrame;
         if (this.onFrame) this.onFrame(w);
         this.win = this.blankWindow(); this.winCount = 0; this.kickInFrame = false;
       }
@@ -546,13 +707,41 @@ const SPECS = [
   { id: 'velPunch', name: 'Vel > punch', lo: 0, hi: 100, def: 0, group: 'play', color: 'text', fmt: pct },
   { id: 'velDrive', name: 'Vel > drive', lo: 0, hi: 100, def: 0, group: 'play', color: 'text', fmt: pct },
   { id: 'duck', name: 'Duck', lo: 0, hi: 150, def: 60, group: 'kick', color: 'glass', fmt: msText, session: true },
+  // v1.1 Hybrid
+  { id: 'layerALevel', name: 'Level', lo: -36, hi: 12, def: 0, group: 'layerA', color: 'layerA', fmt: v => v <= -35.5 ? '-inf' : sign(v) + v.toFixed(1) + ' dB', bipolar: true },
+  { id: 'layerATune', name: 'Tune', lo: -24, hi: 24, def: 0, step: 1, group: 'layerA', color: 'layerA', fmt: v => sign(v) + Math.round(v) + ' st', bipolar: true },
+  { id: 'layerALowCut', name: 'Low cut', lo: 20, hi: 1000, centre: 150, def: 20, group: 'layerA', color: 'layerA', fmt: v => v <= 20.5 ? 'Off' : hzText(v) },
+  { id: 'layerAStart', name: 'Start', lo: 0, hi: 500, centre: 60, def: 0, group: 'layerA', color: 'layerA', fmt: msText },
+  { id: 'layerAWidth', name: 'Width', lo: 0, hi: 100, def: 60, group: 'layerA', color: 'layerA', fmt: pct },
+  { id: 'layerAAttack', name: 'Attack', lo: 0.5, hi: 1500, centre: 30, def: 0.5, group: 'layerA', color: 'layerA', fmt: msText },
+  { id: 'layerAHold', name: 'Hold', lo: 0, hi: 2000, centre: 200, def: 0, group: 'layerA', color: 'layerA', fmt: msText },
+  { id: 'layerADecay', name: 'Decay', lo: 20, hi: 10000, centre: 900, def: 10000, group: 'layerA', color: 'layerA', fmt: v => v >= 9999 ? 'Natural' : msText(v) },
+  { id: 'layerASustain', name: 'Sustain', lo: 0, hi: 100, def: 0, group: 'layerA', color: 'layerA', fmt: pct },
+  { id: 'layerARelease', name: 'Release', lo: 5, hi: 3000, centre: 200, def: 150, group: 'layerA', color: 'layerA', fmt: msText },
+  { id: 'layerBLevel', name: 'Level', lo: -36, hi: 12, def: -6, group: 'layerB', color: 'layerB', fmt: v => v <= -35.5 ? '-inf' : sign(v) + v.toFixed(1) + ' dB', bipolar: true },
+  { id: 'layerBTune', name: 'Tune', lo: -24, hi: 24, def: 0, step: 1, group: 'layerB', color: 'layerB', fmt: v => sign(v) + Math.round(v) + ' st', bipolar: true },
+  { id: 'layerBLowCut', name: 'Low cut', lo: 20, hi: 1000, centre: 150, def: 150, group: 'layerB', color: 'layerB', fmt: v => v <= 20.5 ? 'Off' : hzText(v) },
+  { id: 'layerBAttack', name: 'Fade in', lo: 0.5, hi: 1500, centre: 30, def: 0.5, group: 'layerB', color: 'layerB', fmt: msText },
+  { id: 'layerBDecay', name: 'Length', lo: 20, hi: 10000, centre: 900, def: 10000, group: 'layerB', color: 'layerB', fmt: v => v >= 9999 ? 'Natural' : msText(v) },
+  { id: 'layerBWidth', name: 'Width', lo: 0, hi: 100, def: 60, group: 'layerB', color: 'layerB', fmt: pct },
+  { id: 'engine', name: 'Engine', lo: -48, hi: 6, def: 0, group: 'eng', color: 'magma', fmt: v => v <= -47.5 ? 'Off' : sign(v) + v.toFixed(1) + ' dB', bipolar: false },
+  { id: 'phaseShift', name: 'Phase', lo: -180, hi: 180, def: 0, group: 'eng', color: 'magma', fmt: v => sign(v) + Math.round(v) + '\u00b0', bipolar: true },
+  { id: 'snap', name: 'Snap', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
+  { id: 'sigh', name: 'Sigh', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
+  { id: 'vary', name: 'Vary', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
+  { id: 'velLength', name: 'Vel > length', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
+  { id: 'toneDecay', name: 'Tone decay', lo: 0, hi: 100, def: 0, group: 'char', color: 'magma', fmt: pct },
 ];
+// the built-in layer sounds (same table as Source/LayerLibrary.h): name, group, root note, measured fundamental
+const LAYERS = [["808 Cyclical", "808s", 24, 33.057], ["808 Heavyweight", "808s", 24, 32.804], ["808 Offset", "808s", 24, 33.309], ["808 Rum", "808s", 24, 32.973], ["808 Short", "808s", 24, 32.804], ["808 Standard", "808s", 24, 32.889], ["Bass Brooding", "Basses", 36, 65.104], ["Bass Perfect Donk", "Basses", 24, 32.804], ["Bass Reaper", "Basses", 24, 32.468], ["Bass Unstable", "Basses", 36, 65.188], ["Reese Eternity", "Reeses", 24, 32.973], ["Reese Faith", "Reeses", 36, 65.693], ["Reese Punchy", "Reeses", 36, 64.515], ["Reese Toronto", "Reeses", 36, 65.104], ["Reese Whale", "Reeses", 24, 32.552], ["Fusion Heavy Reese", "Fusions", 24, 32.804], ["Fusion Talking 808", "Fusions", 24, 32.889], ["Fusion Glass Donk", "Fusions", 24, 32.804], ["Fusion Frozen Whale", "Fusions", 24, 33.309], ["Fusion Grit Stack", "Fusions", 24, 32.889], ["Fusion Rum Stretch", "Fusions", 24, 33.562], ["Fusion Brooding Ring", "Fusions", 36, 65.104], ["Fusion Eternity Pluck", "Fusions", 24, 32.72]];
+const LAYER_USER = LAYERS.length + 1;   // choice index of "Your sample"
+const BASELINE = {"snap": 30.0, "sigh": 25.0, "vary": 20.0, "velLength": 25.0, "toneDecay": 25.0};          // the v1.1 808 character baseline every factory preset starts from
 const BEND_DEFAULT = 2;
 const CHOICES = { driveMode: { def: 0, labels: ['Tape', 'Tube', 'Hard', 'Fold'] }, glideMode: { def: 0, labels: ['Legato', 'Always', 'Off'] }, priority: { def: 0, labels: ['Last', 'Low', 'High'] }, kickMode: { def: 0, labels: ['Exact', 'Live'], session: true } };
 const PRESETS = [
   ["Init 808", "Clean", {  }, "A clean, punchy 808. Start here."],
   ["Clean Sub", "Clean", { punch: 4, tone: 0, drive: 0, click: 0, glue: 20, length: 5000, sustain: 60, analog: 10, translate: 25, output: -2.5 }, "Almost a pure sine. For R&B, ballads and big systems."],
-  ["Pure Sine", "Clean", { punch: 0, tone: 0, click: 0, drive: 0, glue: 0, sustain: 100, length: 8000, release: 200, output: -3 }, "Nothing added. Layer it under another bass."],
+  ["Pure Sine", "Clean", { punch: 0, tone: 0, click: 0, drive: 0, glue: 0, sustain: 100, length: 8000, release: 200, snap: 0, sigh: 0, vary: 0, velLength: 0, toneDecay: 0, output: -3 }, "Nothing added. Layer it under another bass."],
   ["Soft Boom", "Clean", { punch: 5, punchTime: 80, attack: 6, tone: 10, click: 0, drive: 2, length: 4000, analog: 40, glue: 25, translate: 25, output: -1 }, "Round and warm, no knock. Sits under vocals."],
   ["R&B Sub", "Clean", { punch: 3, tone: 10, click: 5, drive: 3, glue: 30, length: 3500, sustain: 40, glide: 120, analog: 25, translate: 30, output: -1.5 }, "Smooth sustained sub with gentle slides."],
   ["Long Trap 808", "Trap", { punch: 12, punchTime: 40, length: 3500, glide: 120, drive: 9, glue: 35, translate: 30, click: 10, velPunch: 30, analog: 15, output: -2 }, "The classic long trap tail. Overlap notes to slide."],
@@ -591,11 +780,63 @@ const PRESETS = [
   ["Wide Fold", "Wide", { width: 50, drive: 22, driveMode: 3, driveMix: 65, cutoff: 3800, resonance: 20, split: 110, output: 1 }, "Wide wavefolder texture."],
   ["Phone Ready", "Mix Ready", { translate: 80, drive: 12, tone: 35, click: 30, split: 100, glue: 40, output: 2.5 }, "Built to be heard on phone speakers."],
   ["Heard Everywhere", "Mix Ready", { translate: 65, split: 100, drive: 10, glue: 45, tone: 25, analog: 10, output: 3 }, "Balanced for phones, laptops and clubs."],
+  // v1.1 (generated from Source/PluginProcessor.cpp)
+  ["808 Classic", "Basic 808", {"punch": 6, "punchTime": 25, "snap": 60, "sigh": 55, "vary": 35, "velLength": 60, "length": 1900, "tone": 12, "toneDecay": 45, "click": 18, "drive": 4, "analog": 30, "glue": 20, "translate": 25, "output": -0.4}, "The hardware 808: snap, a slow sigh, every hit slightly different."],
+  ["808 Long Decay", "Basic 808", {"punch": 7, "punchTime": 30, "snap": 50, "sigh": 60, "vary": 30, "velLength": 40, "length": 5800, "release": 300, "tone": 10, "toneDecay": 55, "click": 12, "drive": 5, "analog": 35, "glue": 25, "translate": 30, "output": -2.4}, "The long-decay mod: a tail that rings for bars."],
+  ["808 Short Tight", "Basic 808", {"punch": 9, "punchTime": 22, "snap": 70, "sigh": 35, "vary": 30, "velLength": 40, "length": 480, "click": 30, "drive": 8, "glue": 45, "translate": 25, "output": 3.9}, "Short and tight with the circuit's snap."],
+  ["808 Accent Boom", "Basic 808", {"punch": 10, "punchTime": 35, "snap": 55, "sigh": 70, "vary": 30, "velLength": 85, "velPunch": 55, "velDrive": 30, "length": 2700, "tone": 15, "toneDecay": 40, "drive": 8, "driveMode": 1, "split": 90, "glue": 30, "translate": 30, "output": 0.9}, "Play with velocity: accents hit harder, sigh more and ring longer."],
+  ["808 Tuned Bass", "Basic 808", {"punch": 8, "snap": 40, "sigh": 30, "vary": 20, "length": 3200, "sustain": 35, "glide": 110, "tone": 18, "toneDecay": 50, "drive": 6, "analog": 20, "glue": 30, "translate": 35, "output": -2.1}, "Holds while you play, for melodic bass lines."],
+  ["808 Warm Tape", "Basic 808", {"punch": 9, "snap": 45, "sigh": 45, "vary": 35, "velLength": 40, "length": 2600, "tone": 25, "toneDecay": 65, "drive": 12, "split": 90, "analog": 40, "glue": 30, "translate": 30, "output": 0.7}, "Tape warmth that darkens as the note fades."],
+  ["808 Driven", "Basic 808", {"punch": 11, "snap": 50, "sigh": 40, "vary": 30, "velLength": 40, "length": 2400, "tone": 25, "toneDecay": 30, "drive": 20, "driveMode": 1, "split": 100, "glue": 35, "translate": 40, "output": 0.3}, "Tube-driven 808 with a clean sub and a live feel."],
+  ["808 Sine Snap", "Basic 808", {"punch": 3, "snap": 65, "sigh": 50, "vary": 15, "tone": 0, "click": 0, "drive": 0, "glue": 15, "length": 3000, "translate": 20, "output": -0.6}, "A clean sine with only the circuit's snap and sigh."],
+  ["Heavyweight Hybrid", "Hybrid Trap", {"layerA": "808 Heavyweight", "layerALevel": -2, "punch": 10, "snap": 40, "sigh": 35, "vary": 25, "length": 2600, "glide": 110, "drive": 6, "translate": 30, "glue": 30, "output": -4}, "The Heavyweight 808 locked in phase with the engine. Plays in tune on every key."],
+  ["Glass Top Boom", "Hybrid Trap", {"layerA": "Reese Faith", "layerALowCut": 140, "layerADecay": 2800, "layerAWidth": 75, "layerALevel": -4, "punch": 10, "length": 3200, "sigh": 40, "vary": 20, "tone": 15, "translate": 25, "glue": 30, "output": -1.3}, "Faith reese shimmer on top of a long clean sub."],
+  ["Thick Standard", "Hybrid Trap", {"layerA": "808 Standard", "layerALowCut": 100, "punch": 10, "length": 2100, "tone": 20, "toneDecay": 40, "drive": 9, "driveMode": 1, "split": 90, "snap": 35, "sigh": 35, "vary": 25, "translate": 30, "glue": 35, "output": 1.4}, "Standard 808 grit above a warm, tube-driven engine."],
+  ["Cyclical Phone Killer", "Hybrid Trap", {"layerA": "808 Cyclical", "layerALowCut": 110, "punch": 9, "length": 2600, "drive": 14, "split": 100, "translate": 60, "snap": 35, "vary": 25, "glue": 35, "output": -1.3}, "Cyclical 808 plus Translate: follows on any phone speaker."],
+  ["Octave Ghost", "Hybrid Trap", {"layerA": "808 Offset", "layerALevel": -2, "layerB": "Reese Faith", "layerBAttack": 380, "layerBLevel": -9, "layerBLowCut": 150, "layerBWidth": 80, "punch": 9, "length": 3000, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": -3.4}, "Offset 808, with the Faith reese fading in an octave up."],
+  ["Eternity Pad 808", "Hybrid Trap", {"layerA": "Reese Eternity", "layerALowCut": 160, "layerADecay": 3400, "layerALevel": -3, "layerAWidth": 85, "punch": 10, "length": 3600, "click": 20, "sigh": 40, "translate": 20, "glue": 30, "output": -1.6}, "A long airy reese wash over a deep sub."],
+  ["Heavy Reese", "Hybrid Trap", {"layerA": "Fusion Heavy Reese", "layerALevel": -2, "punch": 8, "length": 3000, "glide": 120, "drive": 6, "driveMode": 1, "split": 90, "sigh": 35, "vary": 25, "translate": 25, "glue": 35, "output": -1.6}, "Fusion: the Heavyweight front with the Toronto reese growling inside its tail."],
+  ["Talking 808", "Hybrid Trap", {"layerA": "Fusion Talking 808", "layerALowCut": 100, "punch": 9, "length": 2600, "drive": 8, "driveMode": 1, "split": 100, "sigh": 40, "vary": 25, "translate": 30, "glue": 35, "output": 1.8}, "Fusion: an 808 shaped by a reese's vowels. It talks as it rings."],
+  ["UK Slide Hybrid", "Hybrid Drill", {"layerA": "808 Heavyweight", "layerALevel": -2, "glide": 220, "glideMode": 1, "priority": 1, "retrigger": 1, "punch": 6, "length": 2400, "drive": 14, "driveMode": 2, "split": 110, "snap": 35, "vary": 25, "translate": 45, "glue": 40, "output": -2.4}, "Heavyweight 808 that slides on every note; low note wins."],
+  ["Dark Reese Drill", "Hybrid Drill", {"layerA": "Reese Toronto", "layerALowCut": 150, "layerADecay": 3000, "layerAWidth": 70, "glide": 200, "glideMode": 1, "punch": 6, "length": 3000, "click": 25, "drive": 8, "driveMode": 1, "split": 110, "translate": 35, "glue": 35, "output": 1.2}, "Toronto reese growl over a sliding sub."],
+  ["NY Grit Slide", "Hybrid Drill", {"layerA": "Fusion Grit Stack", "layerALevel": -2, "glide": 180, "glideMode": 1, "retrigger": 1, "punch": 8, "length": 2000, "drive": 16, "driveMode": 1, "split": 100, "snap": 40, "vary": 30, "translate": 50, "glue": 45, "output": -0.3}, "Fusion Grit Stack: three basses glued into one, knocking on every slide."],
+  ["Whale Slide", "Hybrid Drill", {"layerA": "Reese Whale", "layerALowCut": 150, "layerADecay": 2500, "layerAWidth": 70, "layerALevel": 2, "glide": 300, "glideMode": 1, "punch": 6, "length": 2600, "translate": 30, "glue": 35, "output": -0.4}, "Whale reese sinking under long slides."],
+  ["Rum Stretch Drill", "Hybrid Drill", {"layerA": "Fusion Rum Stretch", "glide": 160, "glideMode": 1, "retrigger": 1, "priority": 1, "punch": 8, "length": 2600, "drive": 12, "driveMode": 2, "split": 100, "snap": 40, "vary": 30, "translate": 40, "glue": 40, "output": -0.5}, "Fusion: the short Rum 808 stretched into a long gritty tail."],
+  ["Donk Pop", "Hybrid Dembow", {"layerA": "Bass Perfect Donk", "layerALowCut": 90, "layerALevel": 1, "punch": 16, "punchTime": 20, "length": 700, "snap": 50, "vary": 30, "drive": 8, "driveMode": 1, "glue": 45, "translate": 35, "output": 0.8}, "The Perfect Donk bass on a tight engine thump."],
+  ["Perreo Thump", "Hybrid Dembow", {"layerA": "808 Short", "layerALowCut": 110, "punch": 16, "punchTime": 20, "length": 600, "click": 40, "snap": 60, "vary": 30, "velLength": 40, "drive": 10, "driveMode": 1, "glue": 50, "translate": 35, "output": 2.6}, "Tight thump that pairs with the dembow kick."],
+  ["Glass Donk", "Hybrid Dembow", {"layerA": "Fusion Glass Donk", "layerALevel": 1, "punch": 12, "length": 900, "snap": 40, "vary": 30, "glue": 40, "translate": 30, "output": 0}, "Fusion: the Donk played through a slice of the Eternity reese."],
+  ["Reggaeton Round", "Hybrid Dembow", {"layerA": "808 Offset", "layerADecay": 180, "layerALowCut": 80, "punch": 12, "punchTime": 25, "length": 1100, "tone": 0, "cutoff": 900, "sigh": 30, "vary": 30, "glue": 40, "translate": 25, "output": 1.8}, "Round bass with an 808 front."],
+  ["Moombah Reese", "Hybrid Dembow", {"layerA": "Reese Faith", "layerALowCut": 140, "layerADecay": 1000, "layerAWidth": 70, "punch": 12, "length": 1000, "drive": 6, "driveMode": 1, "vary": 30, "glue": 40, "translate": 30, "output": 2.7}, "A short reese bite for moombah and dembow."],
+  ["Brooding Bounce", "Hybrid Dembow", {"layerA": "Bass Brooding", "layerALowCut": 140, "layerADecay": 1400, "layerAWidth": 80, "punch": 12, "length": 1300, "vary": 30, "glue": 40, "translate": 25, "output": 1}, "Wide Brooding bass, short and bouncy."],
+  ["Layer Cake", "Game Changers", {"layerA": "808 Heavyweight", "layerADecay": 160, "layerB": "Reese Punchy", "layerBAttack": 60, "layerBDecay": 2600, "layerBLowCut": 140, "layerBLevel": -4, "layerBWidth": 75, "punch": 10, "length": 2800, "drive": 6, "driveMode": 1, "split": 100, "sigh": 35, "translate": 25, "glue": 35, "output": 1.5}, "The Heavyweight 808 hands its tail to the Punchy reese."],
+  ["Frozen Whale", "Game Changers", {"layerA": "Fusion Frozen Whale", "layerALevel": -1, "layerAWidth": 90, "punch": 8, "length": 3200, "sigh": 40, "glide": 140, "translate": 20, "glue": 30, "output": -3.6}, "Fusion: the Whale reese frozen in time over an 808."],
+  ["Eternity Pluck", "Game Changers", {"layerA": "Fusion Eternity Pluck", "layerALowCut": 90, "punch": 9, "length": 2600, "drive": 6, "driveMode": 1, "sigh": 40, "vary": 25, "translate": 25, "glue": 30, "output": 0.1}, "Fusion: an endless reese forced into the shape of an 808."],
+  ["Brooding Ring", "Game Changers", {"layerA": "Fusion Brooding Ring", "layerALowCut": 130, "layerADecay": 2200, "layerAWidth": 80, "layerALevel": -3, "punch": 10, "length": 2400, "translate": 20, "glue": 35, "output": -0.3}, "Fusion: the Brooding bass ring-modulated into metal over a clean sub."],
+  ["Drillbow", "Game Changers", {"layerA": "808 Heavyweight", "layerADecay": 900, "glide": 110, "glideMode": 1, "retrigger": 1, "punch": 10, "punchTime": 25, "length": 900, "snap": 55, "vary": 30, "drive": 14, "driveMode": 1, "split": 100, "translate": 40, "glue": 45, "output": 2.1}, "Drill slides in a dembow pocket: short, sliding, knocking on every note."],
+  ["Talking Grit", "Game Changers", {"layerA": "Fusion Talking 808", "layerALowCut": 100, "layerB": "Fusion Grit Stack", "layerBLowCut": 200, "layerBLevel": -6, "glide": 160, "glideMode": 1, "punch": 8, "length": 2400, "drive": 14, "driveMode": 3, "driveMix": 60, "cutoff": 2200, "resonance": 30, "split": 110, "translate": 35, "glue": 40, "output": 1.4}, "Two fusions stacked and filtered: a vocal growl that slides."],
+  ["Sample Only Heavyweight", "Game Changers", {"layerA": "808 Heavyweight", "engine": -48, "glide": 120, "punch": 0, "translate": 25, "glue": 25, "output": -4.7}, "Engine off: the Heavyweight 808 itself, auto-tuned on every key and sliding."],
+  ["Grit Stack Raw", "Game Changers", {"layerA": "Fusion Grit Stack", "engine": -48, "glide": 150, "glideMode": 1, "translate": 30, "glue": 35, "output": -2.4}, "Engine off: the Grit Stack fusion, playable and in tune."],
 ];
 const P = {};               // plain values
 for (const s of SPECS) P[s.id] = s.def;
 for (const k in CHOICES) P[k] = CHOICES[k].def;
 P.clip = 1; P.phone = 0; P.retrigger = 0; P.kickLock = 0; P.phoneModel = 0; P.bendRange = BEND_DEFAULT;
+P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1;
+const SOUNDS = {};          // decoded layer sounds by name: { mid, side, length, rate, rootNote, rootHz }
+const USER = [null, null];  // "Your sample" per slot
+function layerSample(slot) {
+  const i = Math.round(slot === 0 ? P.layerA : P.layerB);
+  if (i <= 0) return null;
+  if (i === LAYER_USER) return USER[slot];
+  const L = LAYERS[i - 1]; return L ? SOUNDS[L[0]] || null : null;
+}
+function layerSettings(slot) {
+  const X = slot === 0 ? 'layerA' : 'layerB';
+  return { on: !!layerSample(slot), levelDb: P[X + 'Level'] <= -35.5 ? -120 : P[X + 'Level'], tune: P[X + 'Tune'], lowCutHz: P[X + 'LowCut'] <= 20.5 ? 0 : P[X + 'LowCut'],
+    startMs: slot === 0 ? P.layerAStart : 0, attackMs: P[X + 'Attack'], holdMs: slot === 0 ? P.layerAHold : 0, decayMs: P[X + 'Decay'],
+    sustain: slot === 0 ? P.layerASustain * 0.01 : 0, releaseMs: P.layerARelease, width: P[X + 'Width'] * 0.01,
+    track: slot === 0 ? P.layerATrack > 0.5 : true, invert: slot === 0 ? P.layerAInvert > 0.5 : false };
+}
 const toNorm = (s, v) => { const t = (v - s.lo) / (s.hi - s.lo); return s.centre ? Math.pow(Math.max(0, t), skew(s.lo, s.hi, s.centre)) : t; };
 const fromNorm = (s, p) => { p = Math.min(1, Math.max(0, p)); let v = s.centre ? s.lo + (s.hi - s.lo) * Math.pow(p, 1 / skew(s.lo, s.hi, s.centre)) : s.lo + (s.hi - s.lo) * p; if (s.step) v = Math.round(v / s.step) * s.step; return v; };
 
@@ -609,6 +850,8 @@ function engineSettings() {
     cutoffHz: P.cutoff, resonance: P.resonance * 0.01, translate: P.translate, glue: P.glue, width: P.width,
     outputDb: P.output, kickLock: P.kickLock > 0.5, kickMode: P.kickMode, duckMs: P.duck,
     clip: P.clip > 0.5, phone: false, phoneModel: P.phoneModel, priority: P.priority,
+    layers: [layerSettings(0), layerSettings(1)], engineDb: P.engine, phaseLock: P.phaseLock > 0.5, phaseDeg: P.phaseShift,
+    snap: P.snap * 0.01, sigh: P.sigh * 0.01, vary: P.vary * 0.01, velLength: P.velLength * 0.01, toneDecay: P.toneDecay * 0.01,
   };
 }
 
@@ -622,6 +865,7 @@ class BoomProcessor extends AudioWorkletProcessor {
     this.port.onmessage = ev => {
       const m = ev.data;
       if (m.type === 's') { this.s = m.s; this.e.priority = m.s.priority; }
+      else if (m.type === 'layer') this.e.setLayerSample(m.slot, m.sample);
       else if (m.type === 'panic') { this.q = []; this.e.allNotesOff(); }
       else { this.q.push(m); this.q.sort((a, b) => a.t - b.t); }
     };
@@ -664,7 +908,16 @@ function buildPhoneChain() {
 }
 let drumsOn = true;
 const send = m => { if (node) node.port.postMessage(m); else if (fallback) fallback.handle(m); };
-const pushSettings = () => send({ type: 's', s: engineSettings() });
+const sentLayer = [undefined, undefined];
+function pushLayers() {
+  for (let slot = 0; slot < 2; slot++) {
+    const smp = layerSample(slot);
+    if (smp === sentLayer[slot]) continue;
+    sentLayer[slot] = smp;
+    send({ type: 'layer', slot, sample: smp ? { mid: smp.mid, side: smp.side, length: smp.length, rate: smp.rate, rootNote: smp.rootNote, rootHz: smp.rootHz } : null });
+  }
+}
+const pushSettings = () => { pushLayers(); send({ type: 's', s: engineSettings() }); if (typeof drawHybrid === 'function') drawHybrid(); };
 
 async function startAudio() {
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
@@ -686,7 +939,7 @@ async function startAudio() {
     // Older browsers: same engine on the main thread.
     const eng = new Boom808(ctx.sampleRate); eng.onFrame = f => { frame = Object.assign({}, f); };
     const q = []; let s = engineSettings();
-    fallback = { handle: m => { if (m.type === 's') { s = m.s; eng.priority = m.s.priority; } else if (m.type === 'panic') { q.length = 0; eng.allNotesOff(); } else { q.push(m); q.sort((a, b) => a.t - b.t); } } };
+    fallback = { handle: m => { if (m.type === 's') { s = m.s; eng.priority = m.s.priority; } else if (m.type === 'layer') eng.setLayerSample(m.slot, m.sample); else if (m.type === 'panic') { q.length = 0; eng.allNotesOff(); } else { q.push(m); q.sort((a, b) => a.t - b.t); } } };
     const sp = ctx.createScriptProcessor(1024, 1, 2);
     kickSend.connect(sp);
     sp.onaudioprocess = ev => {
@@ -701,6 +954,7 @@ async function startAudio() {
     sp.connect(master);
   }
   buildSounds();
+  sentLayer[0] = sentLayer[1] = undefined;
   pushSettings();
 }
 
@@ -901,11 +1155,14 @@ function setParam(id, v) {
   if (id === 'phone' || id === 'phoneModel') buildPhoneChain();
   if (knobs[id]) knobs[id].update();
   refreshToggles();
+  if (id === 'layerA' || id === 'layerB') refreshHybrid();
+  else for (const b of document.querySelectorAll('.hy .pill[data-key]')) b.setAttribute('aria-pressed', P[b.dataset.key] > 0.5);
   pushSettings();
 }
 
-let advanced = false;
-try { advanced = localStorage.getItem('e808-adv') === '1'; } catch (e) {}
+let view = 0;   // 0 Simple, 1 Advanced, 2 Hybrid
+try { view = +(localStorage.getItem('e808-view') || (localStorage.getItem('e808-adv') === '1' ? 1 : 0)); } catch (e) {}
+let advanced = view === 1;
 const knobArea = document.getElementById('knobArea');
 const defs = `<svg width="0" height="0" style="position:absolute"><defs>
   <linearGradient id="kb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#332c33"/><stop offset="1" stop-color="#121014"/></linearGradient>
@@ -914,7 +1171,9 @@ function buildKnobs() {
   const park = document.getElementById('park');
   for (const id of ['prioritySeg', 'kickModeSeg', 'retrigger']) park.appendChild(document.getElementById(id));
   knobArea.innerHTML = defs;
-  const panel = document.getElementById('panel'); panel.classList.toggle('adv', advanced);
+  const panel = document.getElementById('panel'); panel.classList.toggle('adv', view === 1);
+  viewBtns.forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === view));
+  if (view === 2) { buildHybrid(); return; }
   if (!advanced) {
     const row = document.createElement('div'); row.className = 'knobs';
     SPECS.filter(s => s.simple !== undefined).sort((a, b) => a.simple - b.simple).forEach(s => row.appendChild(makeKnob(s)));
@@ -939,7 +1198,179 @@ function buildKnobs() {
     third.appendChild(playBlock); third.appendChild(kickBlock); groups.appendChild(third);
     knobArea.appendChild(groups);
   }
-  advBtn.setAttribute('aria-pressed', advanced); advBtn.textContent = advanced ? 'Hide advanced' : 'Show advanced';
+}
+
+// ---------- v1.1 Hybrid view ----------
+const waveC = [null, null]; let envC = null;
+function layerOptions(slot) {
+  let html = '<option value="0">No layer</option>', group = '';
+  LAYERS.forEach(([name, grp], i) => {
+    if (grp !== group) { html += (group ? '</optgroup>' : '') + `<optgroup label="${grp}">`; group = grp; }
+    html += `<option value="${i + 1}">${name}${SOUNDS[name] ? '' : ' (load pack)'}</option>`;
+  });
+  html += '</optgroup><optgroup label="Yours">' + `<option value="${LAYER_USER}">${USER[slot] ? USER[slot].name : 'Your sample (load a file)'}</option></optgroup>`;
+  return html;
+}
+function pill(id, label, color, key) {
+  const b = document.createElement('button'); b.className = 'pill'; b.id = id; b.style.setProperty('--c', `var(--${color})`); b.textContent = label;
+  b.onclick = () => setParam(key, P[key] > 0.5 ? 0 : 1); b.dataset.key = key; return b;
+}
+function buildHybrid() {
+  const hy = document.createElement('div'); hy.className = 'hy';
+  const pack = document.createElement('div'); pack.className = 'pack'; pack.id = 'pack';
+  pack.innerHTML = `<strong>Sound pack</strong><span>Drop your <em>808s &amp; Basses</em> zip, the <em>Epsilon 808 Layers</em> zip, or FLAC / WAV files here.</span>
+    <button class="btn" id="packPick">Choose files</button><input type="file" id="packFile" multiple accept=".zip,.flac,.wav,.aif,.aiff" hidden><span class="status" id="packStatus"></span>`;
+  hy.appendChild(pack);
+  const knobRow = (cls) => { const r = document.createElement('div'); r.className = 'knobs ' + cls; SPECS.filter(s => s.group === cls).forEach(s => r.appendChild(makeKnob(s))); return r; };
+  const title = (t, c) => `<div class="label group-title" style="color:var(--${c})">${t}</div>`;
+  for (const slot of [0, 1]) {
+    const X = slot === 0 ? 'layerA' : 'layerB', box = document.createElement('div'); box.style.display = 'grid'; box.style.gap = '6px';
+    box.innerHTML = title(slot === 0 ? 'Layer A' : 'Layer B', X);
+    const row = document.createElement('div'); row.className = slot === 0 ? 'hy-row' : 'hy-row';
+    const left = document.createElement('div'); left.className = 'hy-left';
+    const sel = document.createElement('div'); sel.className = 'hy-sel'; sel.style.setProperty('--acc', `var(--${X})`);
+    sel.innerHTML = `<select id="${X}Sel" aria-label="${slot === 0 ? 'Layer A' : 'Layer B'} sound">${layerOptions(slot)}</select><button class="btn" id="${X}Load">Load</button><input type="file" id="${X}File" accept=".wav,.aif,.aiff,.flac,.mp3,.ogg" hidden>`;
+    left.appendChild(sel);
+    const wc = document.createElement('canvas'); wc.className = 'wave'; wc.setAttribute('aria-label', 'Layer waveform with its envelope'); left.appendChild(wc); waveC[slot] = wc;
+    if (slot === 0) { const pl = document.createElement('div'); pl.className = 'pills'; pl.appendChild(pill('trackP', 'Track', 'layerA', 'layerATrack')); pl.appendChild(pill('invertP', 'Invert', 'layerA', 'layerAInvert')); pl.appendChild(pill('lockP', 'Phase lock', 'magma', 'phaseLock')); left.appendChild(pl); }
+    const hint = document.createElement('div'); hint.className = 'layer-hint'; hint.id = X + 'Hint'; left.appendChild(hint);
+    row.appendChild(left);
+    if (slot === 0) row.appendChild(knobRow('layerA'));
+    else { const b = document.createElement('div'); b.className = 'hy-b'; const kb = knobRow('layerB'); const ke = document.createElement('div'); ke.style.display = 'grid'; ke.style.gap = '6px'; ke.innerHTML = title('Engine', 'magma'); ke.appendChild(knobRow('eng')); b.appendChild(kb); b.appendChild(ke); row.appendChild(b); }
+    box.appendChild(row); hy.appendChild(box);
+  }
+  const c = document.createElement('div'); c.className = 'hy-c';
+  const ch = document.createElement('div'); ch.style.display = 'grid'; ch.style.gap = '6px'; ch.innerHTML = title('808 character', 'magma'); ch.appendChild(knobRow('char'));
+  const ev = document.createElement('div'); ev.style.display = 'grid'; ev.style.gap = '6px'; ev.innerHTML = title('Envelopes', 'text');
+  envC = document.createElement('canvas'); envC.className = 'env'; envC.setAttribute('aria-label', 'Engine and layer envelopes'); ev.appendChild(envC);
+  c.appendChild(ch); c.appendChild(ev); hy.appendChild(c);
+  knobArea.appendChild(hy);
+  for (const slot of [0, 1]) {
+    const X = slot === 0 ? 'layerA' : 'layerB', selEl = document.getElementById(X + 'Sel'), file = document.getElementById(X + 'File');
+    selEl.onchange = () => { const v = +selEl.value; if (v === LAYER_USER && !USER[slot]) { file.click(); return; } setParam(X, v); };
+    document.getElementById(X + 'Load').onclick = () => file.click();
+    file.onchange = async () => { if (file.files[0]) { await loadUserFile(slot, file.files[0]); file.value = ''; } };
+  }
+  const pf = document.getElementById('packFile');
+  document.getElementById('packPick').onclick = () => pf.click();
+  pf.onchange = async () => { await loadPack([...pf.files]); pf.value = ''; };
+  pack.addEventListener('dragover', e => { e.preventDefault(); pack.classList.add('drag'); });
+  pack.addEventListener('dragleave', () => pack.classList.remove('drag'));
+  pack.addEventListener('drop', async e => { e.preventDefault(); pack.classList.remove('drag'); await loadPack([...e.dataTransfer.files]); });
+  refreshToggles(); refreshHybrid();
+}
+function refreshHybrid() {
+  if (view !== 2) return;
+  for (const slot of [0, 1]) {
+    const X = slot === 0 ? 'layerA' : 'layerB', sel = document.getElementById(X + 'Sel'); if (!sel) continue;
+    sel.innerHTML = layerOptions(slot); sel.value = String(Math.round(P[X])); sel.classList.toggle('on', P[X] > 0);
+    const i = Math.round(P[X]), hint = document.getElementById(X + 'Hint');
+    hint.textContent = i > 0 && !layerSample(slot) ? (i === LAYER_USER ? 'Load a file for this slot.' : 'This sound is in your pack: drop it above to hear it.') : '';
+  }
+  for (const b of document.querySelectorAll('.hy .pill[data-key]')) b.setAttribute('aria-pressed', P[b.dataset.key] > 0.5);
+  const st = document.getElementById('packStatus'); if (st) { const n = LAYERS.filter(L => SOUNDS[L[0]]).length; st.textContent = n ? `${n} of ${LAYERS.length} sounds loaded, kept in this browser` : 'No sounds loaded yet'; }
+  drawHybrid();
+}
+function envAt(t, a, h, d, sus, keyUp, rel) {
+  const held = u => u < a ? u / Math.max(0.0005, a) : (u < a + h || d >= 9999 ? 1 : sus + (1 - sus) * Math.exp(-6.9078 * (u - a - h) / Math.max(0.01, d * 0.001)));
+  return t < keyUp ? held(t) : held(keyUp) * Math.exp(-6.9078 * (t - keyUp) / Math.max(0.003, rel));
+}
+function drawHybrid() {
+  if (view !== 2 || !envC) return;
+  for (const slot of [0, 1]) {
+    const c = waveC[slot]; if (!c || !c.isConnected) continue;
+    const [g, w, h] = fit(c); g.clearRect(0, 0, w, h);
+    const smp = layerSample(slot), col = css(slot === 0 ? 'layerA' : 'layerB');
+    if (!smp) { g.fillStyle = css('dim'); g.font = '600 13px ' + css('display'); g.textAlign = 'center'; g.fillText(slot === 0 ? 'Pick a layer to blend with the engine' : 'Optional: a texture or tail', w / 2, h / 2 + 4); g.textAlign = 'left'; continue; }
+    const X = slot === 0 ? 'layerA' : 'layerB', secs = smp.length / smp.rate, shown = Math.min(4, Math.max(1, secs));
+    const a = P[X + 'Attack'] * 0.001, d = P[X + 'Decay'], hold = slot === 0 ? P.layerAHold * 0.001 : 0, sus = slot === 0 ? P.layerASustain * 0.01 : 0, start = slot === 0 ? P.layerAStart * 0.001 : 0;
+    const mid = h / 2, half = h / 2 - 4; g.beginPath();
+    for (let x = 0; x < w; x++) {
+      const t0 = shown * x / w, t1 = shown * (x + 1) / w; let pk = 0;
+      for (let f = Math.floor(t0 * smp.rate); f < Math.min(smp.length, Math.floor(t1 * smp.rate)); f += 4) pk = Math.max(pk, Math.abs(smp.mid[f]));
+      const th = t0 - start, e = th < 0 ? 0 : envAt(th, a, hold, d, sus, 1e9, 1);
+      g.fillStyle = th < 0 ? css('dim') : col + '47'; g.fillRect(x, mid - pk * half, 1, 2 * pk * half);
+      if (pk * e * half > 0.3) { g.fillStyle = col; g.fillRect(x, mid - pk * e * half, 1, 2 * pk * e * half); }
+      const ey = h - 3 - e * (h - 6); x === 0 ? g.moveTo(x, ey) : g.lineTo(x, ey);
+    }
+    g.strokeStyle = 'rgba(239,231,218,.7)'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = css('muted'); g.font = '600 11px ' + css('display'); g.textAlign = 'right'; g.fillText(secs.toFixed(1) + ' s', w - 6, 13); g.textAlign = 'left';
+  }
+  const [g, w, h] = fit(envC); g.clearRect(0, 0, w, h);
+  const x0 = 10, x1 = w - 10, y0 = 22, y1 = h - 18, T = 4, keyUp = 2.5, X = t => x0 + (x1 - x0) * t / T, Y = v => y1 - (y1 - y0) * Math.min(1, Math.max(0, v));
+  g.strokeStyle = '#2a252d'; g.lineWidth = 1; for (let s2 = 1; s2 < 4; s2++) { g.beginPath(); g.moveTo(X(s2), y0); g.lineTo(X(s2), y1); g.stroke(); }
+  g.strokeStyle = css('dim'); g.beginPath(); g.moveTo(X(keyUp), y0 - 4); g.lineTo(X(keyUp), y1); g.stroke();
+  g.fillStyle = css('dim'); g.font = '600 11px ' + css('display'); g.fillText('KEY UP', X(keyUp) + 4, y0 + 8);
+  for (let s2 = 0; s2 <= 4; s2++) { g.textAlign = 'center'; g.fillText(s2 + ' s', X(s2), h - 4); } g.textAlign = 'left';
+  const curve = (fn, col, fill) => { g.beginPath(); for (let i = 0; i <= x1 - x0; i++) { const t = T * i / (x1 - x0), v = fn(t); i ? g.lineTo(X(t), Y(v)) : g.moveTo(X(t), Y(v)); }
+    if (fill) { g.save(); g.lineTo(X(T), y1); g.lineTo(X(0), y1); g.closePath(); g.fillStyle = col + '1f'; g.fill(); g.restore(); g.beginPath(); for (let i = 0; i <= x1 - x0; i++) { const t = T * i / (x1 - x0), v = fn(t); i ? g.lineTo(X(t), Y(v)) : g.moveTo(X(t), Y(v)); } }
+    g.strokeStyle = col; g.lineWidth = 1.6; g.stroke(); };
+  const rel = P.layerARelease * 0.001;
+  if (P.layerB > 0) curve(t => envAt(t, P.layerBAttack * 0.001, 0, P.layerBDecay, 0, keyUp, rel), css('layerB'));
+  if (P.layerA > 0) curve(t => envAt(t, P.layerAAttack * 0.001, P.layerAHold * 0.001, P.layerADecay, P.layerASustain * 0.01, keyUp, rel), css('layerA'));
+  if (P.engine > -47.5) curve(t => { const a = P.attack * 0.001, L = P.length * 0.001, S = P.sustain * 0.01, R = P.release * 0.001;
+    const held = u => u < a ? u / Math.max(0.0005, a) : S + (1 - S) * Math.exp(-6.9078 * (u - a) / Math.max(0.02, L));
+    return t < keyUp ? held(t) : held(keyUp) * Math.exp(-6.9078 * (t - keyUp) / Math.max(0.003, R)); }, css('magma'), true);
+  let lx = x0; g.font = '700 12px ' + css('display');
+  for (const [t, c, on] of [['ENGINE', 'magma', P.engine > -47.5], ['LAYER A', 'layerA', P.layerA > 0], ['LAYER B', 'layerB', P.layerB > 0]]) {
+    g.fillStyle = on ? css(c) : css('dim'); g.beginPath(); g.arc(lx + 4, 12, 3.5, 0, 7); g.fill(); g.fillText(t, lx + 12, 16); lx += g.measureText(t).width + 30; }
+}
+
+// ---------- sound pack: decode in the browser, remember in IndexedDB (this browser only) ----------
+const norm = n => n.split('/').pop().replace(/\.[a-z0-9]+$/i, '').replace(/^cymatics - orchid /i, '').replace(/^layer_/i, '').replace(/ \(c\)$/i, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+const BY_NORM = {}; LAYERS.forEach(L => { BY_NORM[L[0].toLowerCase()] = L; });
+let decodeCtx = null;
+async function decodeBytes(buf) {
+  decodeCtx = decodeCtx || new OfflineAudioContext(2, 1, 44100);
+  const ab = await decodeCtx.decodeAudioData(buf.slice(0));
+  const n = Math.min(ab.length, Math.floor(30 * ab.sampleRate)), l = ab.getChannelData(0), r = ab.numberOfChannels > 1 ? ab.getChannelData(1) : l;
+  let mid = new Float32Array(n), side = new Float32Array(n), pk = 0, sp = 0;
+  for (let i = 0; i < n; i++) { mid[i] = 0.5 * (l[i] + r[i]); side[i] = 0.5 * (l[i] - r[i]); pk = Math.max(pk, Math.abs(mid[i])); sp = Math.max(sp, Math.abs(side[i])); }
+  let s0 = 0; while (s0 + 64 < n && Math.abs(mid[s0]) < 0.02 * pk) s0++; s0 = Math.max(0, s0 - 8);
+  mid = mid.slice(s0); side = side.slice(s0);
+  if (pk > 0) { const g = 0.89 / pk; for (let i = 0; i < mid.length; i++) { mid[i] *= g; side[i] *= g; } }
+  return { mid, side: sp > 1e-4 ? side : null, length: mid.length, rate: ab.sampleRate };
+}
+function detectRoot(smp) {
+  const a = Math.floor(0.15 * smp.rate), b = Math.min(smp.length, Math.floor(0.6 * smp.rate)); let best = 32.7032, bp = 0;
+  if (b - a < 0.1 * smp.rate) return { rootNote: 24, rootHz: best };
+  for (let hz = 25; hz <= 140; hz *= Math.pow(2, 2 / 1200)) { let re = 0, im = 0; const w = 2 * Math.PI * hz / smp.rate;
+    for (let i = a; i < b; i += 8) { const win = 0.5 - 0.5 * Math.cos(2 * Math.PI * (i - a) / (b - a)); re += win * smp.mid[i] * Math.cos(w * i); im += win * smp.mid[i] * Math.sin(w * i); }
+    if (re * re + im * im > bp) { bp = re * re + im * im; best = hz; } }
+  return { rootNote: Math.round(69 + 12 * Math.log2(best / 440)), rootHz: best };
+}
+let db = null;
+function openDb() { return new Promise(res => { try { const rq = indexedDB.open('e808-lab', 1); rq.onupgradeneeded = () => rq.result.createObjectStore('sounds'); rq.onsuccess = () => res(rq.result); rq.onerror = () => res(null); } catch (e) { res(null); } }); }
+async function remember(name, bytes) { try { db = db || await openDb(); if (!db) return; db.transaction('sounds', 'readwrite').objectStore('sounds').put(bytes, name); } catch (e) {} }
+async function recall() {
+  try { db = db || await openDb(); if (!db) return;
+    const st = db.transaction('sounds', 'readonly').objectStore('sounds'), keys = await new Promise(r => { const q = st.getAllKeys(); q.onsuccess = () => r(q.result); q.onerror = () => r([]); });
+    for (const k of keys) { const bytes = await new Promise(r => { const q = db.transaction('sounds', 'readonly').objectStore('sounds').get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); });
+      if (bytes && BY_NORM[k.toLowerCase()]) await addSound(BY_NORM[k.toLowerCase()], bytes, false); }
+    if (keys.length) { refreshHybrid(); pushSettings(); }
+  } catch (e) {}
+}
+async function addSound(L, bytes, store) {
+  try { const smp = await decodeBytes(bytes); smp.rootNote = L[2]; smp.rootHz = L[3]; smp.name = L[0]; SOUNDS[L[0]] = smp; if (store) remember(L[0], bytes); return true; } catch (e) { return false; }
+}
+async function loadPack(files) {
+  const st = document.getElementById('packStatus'); if (st) st.textContent = 'Reading…';
+  let added = 0, skipped = 0;
+  const take = async (name, getBytes) => { const L = BY_NORM[norm(name)]; if (!L) { skipped++; return; } if (await addSound(L, await getBytes(), true)) added++; };
+  for (const f of files) {
+    if (/\.zip$/i.test(f.name)) {
+      if (typeof JSZip === 'undefined') { if (st) st.textContent = 'The zip reader did not load; drop the audio files instead.'; continue; }
+      const zip = await JSZip.loadAsync(await f.arrayBuffer());
+      for (const e of Object.values(zip.files)) { if (e.dir || /__MACOSX|(^|\/)\._/.test(e.name) || !/\.(wav|flac|aif|aiff|mp3|ogg)$/i.test(e.name)) continue; await take(e.name, () => e.async('arraybuffer')); }
+    } else if (/\.(wav|flac|aif|aiff|mp3|ogg)$/i.test(f.name)) await take(f.name, () => f.arrayBuffer());
+  }
+  refreshHybrid(); pushSettings();
+  if (st) st.textContent = `${LAYERS.filter(L => SOUNDS[L[0]]).length} of ${LAYERS.length} sounds loaded` + (added ? `, ${added} new` : '') + (skipped ? ` (${skipped} files not in the list)` : '') + ', kept in this browser';
+}
+async function loadUserFile(slot, file) {
+  try { const smp = await decodeBytes(await file.arrayBuffer()); Object.assign(smp, detectRoot(smp)); smp.name = file.name.replace(/\.[a-z0-9]+$/i, ''); USER[slot] = smp;
+    setParam(slot === 0 ? 'layerA' : 'layerB', LAYER_USER); }
+  catch (e) { const h = document.getElementById((slot === 0 ? 'layerA' : 'layerB') + 'Hint'); if (h) h.textContent = 'Could not read ' + file.name + '. Use WAV, AIFF or FLAC.'; }
 }
 
 // segmented switches and pills
@@ -948,7 +1379,9 @@ for (const id of ['driveMode', 'glideMode', 'priority', 'kickMode']) {
   const host = document.getElementById(id === 'priority' ? 'prioritySeg' : id === 'kickMode' ? 'kickModeSeg' : id);
   segs[id] = CHOICES[id].labels.map((label, i) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => setParam(id, i); host.appendChild(b); return b; });
 }
-const advBtn = document.getElementById('advanced'), clipBtn = document.getElementById('clip'), phoneBtn = document.getElementById('phone');
+const viewBtns = [...document.querySelectorAll('#viewSeg button')];
+viewBtns.forEach(b => b.onclick = () => { view = +b.dataset.v; advanced = view === 1; try { localStorage.setItem('e808-view', String(view)); } catch (e) {} buildKnobs(); });
+const clipBtn = document.getElementById('clip'), phoneBtn = document.getElementById('phone');
 const kickBtn = document.getElementById('kickLock'), retrigBtn = document.getElementById('retrigger'), phoneModelSel = document.getElementById('phoneModel');
 function refreshToggles() {
   for (const id in segs) segs[id].forEach((b, i) => b.setAttribute('aria-pressed', P[id] === i));
@@ -959,7 +1392,7 @@ function refreshToggles() {
   phoneModelSel.value = String(P.phoneModel);
   document.getElementById('coneView').classList.toggle('phone-on', P.phone > 0.5);
 }
-advBtn.onclick = () => { advanced = !advanced; try { localStorage.setItem('e808-adv', advanced ? '1' : '0'); } catch (e) {} buildKnobs(); };
+
 clipBtn.onclick = () => setParam('clip', P.clip > 0.5 ? 0 : 1);
 phoneBtn.onclick = () => setParam('phone', P.phone > 0.5 ? 0 : 1);
 kickBtn.onclick = () => setParam('kickLock', P.kickLock > 0.5 ? 0 : 1);
@@ -979,10 +1412,14 @@ function loadPreset(i) {
   const keep = { phone: P.phone, phoneModel: P.phoneModel, kickLock: P.kickLock, kickMode: P.kickMode, duck: P.duck };
   for (const s of SPECS) P[s.id] = s.def;
   for (const k in CHOICES) P[k] = CHOICES[k].def;
-  P.clip = 1; P.retrigger = 0; P.bendRange = BEND_DEFAULT; Object.assign(P, PRESETS[i][2]); Object.assign(P, keep);
+  P.clip = 1; P.retrigger = 0; P.bendRange = BEND_DEFAULT;
+  P.layerA = 0; P.layerB = 0; P.layerATrack = 1; P.layerAInvert = 0; P.phaseLock = 1;
+  Object.assign(P, BASELINE); Object.assign(P, PRESETS[i][2]); Object.assign(P, keep);
+  for (const X of ['layerA', 'layerB']) if (typeof P[X] === 'string') P[X] = LAYERS.findIndex(L => L[0] === P[X]) + 1;
   for (const id in knobs) knobs[id].update();
-  refreshToggles(); pushSettings();
-  if (typeof presetNote !== 'undefined' && presetNote) presetNote.textContent = PRESETS[i][3];
+  refreshToggles(); refreshHybrid(); pushSettings();
+  const needs = [P.layerA, P.layerB].some((v, slot) => v > 0 && !layerSample(slot));
+  if (typeof presetNote !== 'undefined' && presetNote) presetNote.textContent = PRESETS[i][3] + (needs ? '  (Its layers are in your sound pack: drop it on the HYBRID page.)' : '');
 }
 presetSel.onchange = () => loadPreset(+presetSel.value);
 const presetNote = document.getElementById('presetNote');
@@ -1123,7 +1560,14 @@ patternBtn.onclick = () => setPlaying(!playing);
 drumsBtn.onclick = () => { drumsOn = !drumsOn; drumsBtn.setAttribute('aria-pressed', drumsOn); drumsBtn.textContent = drumsOn ? 'Beat on' : 'Beat off'; };
 
 async function ensurePlaying() { if (!ctx) { startBtn.textContent = 'Starting…'; await startAudio(); startBtn.textContent = 'Audio on'; startBtn.setAttribute('aria-pressed', 'true'); patternBtn.disabled = false; } if (!playing) setPlaying(true); }
+const presetIndex = name => PRESETS.findIndex(p => p[0] === name);
 const TRIES = {
+  phase: () => { const i = presetIndex('Heavyweight Hybrid'); loadPreset(i); presetSel.value = i; setParam('phaseLock', 0);
+    stepHook = s => { if (s === 64) setParam('phaseLock', 1); if (s === 128) stepHook = null; }; },
+  character: () => { const i = presetIndex('808 Classic'); loadPreset(i); presetSel.value = i; const keep = {}; for (const k of ['snap', 'sigh', 'vary', 'velLength', 'toneDecay']) { keep[k] = P[k]; setParam(k, 0); }
+    stepHook = s => { if (s === 64) for (const k in keep) setParam(k, keep[k]); if (s === 128) stepHook = null; }; },
+  hybrid: () => { const i = presetIndex('Layer Cake'); loadPreset(i); presetSel.value = i; const a = P.layerA, b = P.layerB; setParam('layerA', 0); setParam('layerB', 0);
+    stepHook = s => { if (s === 64) { setParam('layerA', a); setParam('layerB', b); } if (s === 128) stepHook = null; }; },
   translate: () => { loadPreset(5); presetSel.value = 5; setParam('translate', 0); setParam('phone', 1);
     stepHook = s => { if (s === 64) setParam('translate', 70); if (s === 128) { setParam('phone', 0); stepHook = null; } }; },
   drive: () => { loadPreset(0); presetSel.value = 0; setParam('drive', 18);
@@ -1139,6 +1583,7 @@ const TRIES = {
 };
 document.querySelectorAll('[data-try]').forEach(b => b.onclick = async () => { if (playing) setPlaying(false); TRIES[b.dataset.try](); await ensurePlaying(); });
 
-buildKnobs(); refreshToggles(); labelKeys(); presetSel.value = 0; presetNote.textContent = PRESETS[0][3];
+buildKnobs(); refreshToggles(); labelKeys(); loadPreset(0); presetSel.value = 0;
+recall();
 requestAnimationFrame(tick);
 </script>
