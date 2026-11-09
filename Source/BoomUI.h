@@ -4,6 +4,7 @@
 // Header-only; included by PluginEditor.cpp.
 
 #include "PluginProcessor.h"
+#include "../Shared/epsilon_ui/EpsilonHeader.h"
 
 #include <BinaryData.h>
 #include <cmath>
@@ -12,15 +13,17 @@ namespace boomui
 {
 namespace palette
 {
-inline const juce::Colour background { 0xff0b0a0c };
-inline const juce::Colour panel      { 0xff151316 };
-inline const juce::Colour plot       { 0xff0f0e11 };
-inline const juce::Colour edge       { 0xff2a252d };
-inline const juce::Colour text       { 0xffefe7da };   // bone
-inline const juce::Colour muted      { 0xff9a8f88 };
-inline const juce::Colour dim        { 0xff574f52 };
-inline const juce::Colour magma      { 0xffff4d2e };   // the 808 itself: level, punch, the hero knob
-inline const juce::Colour ember      { 0xffff9a3c };   // drive and saturation
+// Epsilon Sounds design system v1 (Epsilon tier). Glass stays: it marks harmonics / Phone Check.
+inline const epsilon_ui::Palette brand = epsilon_ui::palette (epsilon_ui::Tier::Epsilon);
+inline const juce::Colour background = brand.bg;
+inline const juce::Colour panel      = brand.surface;
+inline const juce::Colour plot       = brand.bg.darker (0.15f);
+inline const juce::Colour edge       = brand.line;
+inline const juce::Colour text       = brand.ink;   // bone
+inline const juce::Colour muted      = brand.inkMuted;
+inline const juce::Colour dim        = epsilon_ui::faint (brand);
+inline const juce::Colour magma      = brand.live;   // the 808 itself: level, punch, the hero knob
+inline const juce::Colour ember      = brand.meterHot;   // drive and saturation
 inline const juce::Colour glass      { 0xff6fe3d1 };   // Translate harmonics and Phone Check
 }
 

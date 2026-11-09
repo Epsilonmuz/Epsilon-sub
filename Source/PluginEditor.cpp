@@ -297,23 +297,12 @@ public:
     {
         g.fillAll(palette::background);
 
-        // A low ember glow behind the logo: the 808 signature
-        g.setGradientFill(juce::ColourGradient(palette::magma.withAlpha(0.20f), 0.0f, 0.0f,
-                                               palette::magma.withAlpha(0.0f), 260.0f, 0.0f, false));
-        g.fillRect(0, 0, 260, 64);
-
-        g.setColour(palette::text);
-        g.setFont(font(14.0f, Weight::bold));
-        g.drawText(juce::CharPointer_UTF8("E\xce\xa3  EPSILON SOUNDS"), 24, 9, 180, 18, juce::Justification::centredLeft);
-        g.setFont(font(42.0f, Weight::bold));
-        g.drawText("808", 22, 22, 80, 40, juce::Justification::centredLeft);
-        g.setColour(palette::magma);
-        g.fillEllipse(96.0f, 48.0f, 9.0f, 9.0f);
-        g.setColour(palette::muted);
-        g.setFont(font(14.0f, Weight::semibold));
-        g.drawText("SUB BASS INSTRUMENT", 116, 40, 160, 18, juce::Justification::centredLeft);
+        // Epsilon Sounds product mark (shared design system)
+        const float markRight = epsilon_ui::drawProductMark(g, { 22.0f, 14.0f }, 1.0f, epsilon_ui::Tier::Epsilon, "808", "Sub bass instrument",
+                                    [](float h, bool b) { return font(h, b ? Weight::bold : Weight::semibold); });
         g.setColour(palette::dim);
-        g.drawText("v" JucePlugin_VersionString, 116, 22, 60, 18, juce::Justification::centredLeft);
+        g.setFont(font(12.0f, Weight::semibold));
+        g.drawText("v" JucePlugin_VersionString, (int) markRight + 10, 14, 60, 18, juce::Justification::centredLeft);
 
         if (!showAdvanced() && !showHybrid() && !browser.isVisible())
         {
