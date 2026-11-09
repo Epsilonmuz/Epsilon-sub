@@ -1,0 +1,1144 @@
+<title>Epsilon 808 Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* Layout: the plugin panel on a dark bench. Transport strip, then cone + tail side by side
+   (stacked on phones), mode row, knobs, keyboard. Single dark look on purpose: it matches the plugin. */
+:root {
+  --bg: #0b0a0c;
+  --panel: #151316;
+  --plot: #0f0e11;
+  --edge: #2a252d;
+  --text: #efe7da;     /* bone */
+  --muted: #9a8f88;
+  --dim: #5f5659;
+  --magma: #ff4d2e;    /* the 808 itself */
+  --ember: #ff9a3c;    /* drive */
+  --glass: #6fe3d1;    /* Translate and Phone Check */
+  --display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--text); }
+body { font-family: var(--body); font-size: 15px; line-height: 1.45; }
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 40px;
+  display: grid; gap: 14px;
+}
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; }
+.brand { display: grid; gap: 2px; }
+.brand .maker { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 46px); line-height: .95; display: flex; align-items: baseline; gap: 10px; }
+.brand h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 14px var(--magma); display: inline-block; }
+.brand h1 small { font-size: 15px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+.transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: inherit; }
+.btn {
+  font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase;
+  background: var(--plot); border: 1px solid var(--edge); border-radius: 8px; padding: 9px 14px; cursor: pointer; color: var(--text);
+}
+.btn:hover { border-color: var(--dim); }
+.btn.hero { background: var(--magma); border-color: var(--magma); color: #1a0703; }
+.btn.hero[aria-pressed="true"] { background: var(--plot); color: var(--magma); }
+.btn[aria-pressed="true"]:not(.hero) { border-color: var(--text); }
+select.preset {
+  font-family: var(--display); font-weight: 600; font-size: 16px; background: var(--plot); border: 1px solid var(--edge);
+  border-radius: 8px; padding: 8px 12px; min-width: 190px; max-width: 100%;
+}
+:focus-visible { outline: 2px solid var(--glass); outline-offset: 2px; }
+
+.panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 16px; padding: 14px; display: grid; gap: 12px; }
+.views { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 12px; }
+.view { background: var(--plot); border: 1px solid var(--edge); border-radius: 12px; position: relative; min-width: 0; }
+.view.phone-on { border-color: var(--glass); }
+.view canvas { display: block; width: 100%; height: 260px; }
+.label { font-family: var(--display); font-weight: 700; font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; background: var(--plot); border: 1px solid var(--edge); border-radius: 9px; padding: 3px; }
+.seg button {
+  font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase;
+  background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px 12px; color: var(--muted); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { color: var(--text); border-color: var(--accent, var(--text)); background: color-mix(in srgb, var(--accent, var(--text)) 16%, transparent); }
+.pill {
+  font-family: var(--display); font-weight: 600; font-size: 13.5px; letter-spacing: .05em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 8px; background: var(--plot); border: 1px solid var(--edge); border-radius: 99px;
+  padding: 6px 14px; color: var(--muted); cursor: pointer;
+}
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill[aria-pressed="true"] { color: var(--text); border-color: var(--c, var(--text)); background: color-mix(in srgb, var(--c, var(--text)) 15%, transparent); }
+.pill[aria-pressed="true"]::before { background: var(--c, var(--text)); }
+.preset-note { flex-basis: 100%; color: var(--muted); font-size: 13.5px; text-align: left; min-height: 1.2em; }
+.phone-group { display: inline-flex; gap: 6px; align-items: center; }
+select.mini { font-family: var(--display); font-weight: 600; font-size: 13.5px; background: var(--plot); border: 1px solid var(--edge); border-radius: 8px; padding: 5px 8px; color: var(--text); }
+.extras { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.extras .label { margin-right: 4px; }
+.kick-status { color: var(--muted); font-size: 13.5px; }
+.group-title { display: flex; align-items: center; gap: 10px; }
+.group-title::after { content: ""; flex: 1; height: 1px; background: var(--edge); }
+
+.knobs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px 4px; align-items: end; }
+.adv .knobs.env { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.adv .knobs.body { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.adv .knobs.fx { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.knobs.play, .knobs.kick { grid-template-columns: repeat(2, minmax(0, 84px)); }
+.groups { display: grid; gap: 10px; }
+.adv-row { display: grid; grid-template-columns: 8fr 5fr; gap: 18px; }
+.adv-row.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.knob { display: grid; justify-items: center; gap: 0; user-select: none; touch-action: none; cursor: ns-resize; min-width: 0; }
+.knob svg { width: 100%; max-width: 84px; height: auto; overflow: visible; }
+.knob.hero svg { max-width: 120px; }
+.knob output { font-family: var(--display); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.knob.hero output { font-size: 19px; }
+.knob .name { font-family: var(--display); font-weight: 700; font-size: 12.5px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; text-align: center; }
+.knob.hero .name { color: var(--text); font-size: 15px; }
+
+.kbd-wrap { overflow-x: auto; border-radius: 8px; }
+.kbd { position: relative; height: 92px; min-width: 620px; display: flex; touch-action: none; user-select: none; }
+.kbd .w { flex: 1; border: 1px solid var(--bg); background: #26222a; border-radius: 0 0 5px 5px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; }
+.kbd .w span { font-family: var(--display); font-size: 11px; color: var(--muted); }
+.kbd .b { position: absolute; top: 0; height: 58%; background: #09080a; border: 1px solid #000; border-radius: 0 0 4px 4px; z-index: 2; }
+.kbd .w.on, .kbd .b.on { background: var(--magma); }
+.kbd .key-hint { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 10.5px; color: var(--dim); text-transform: uppercase; pointer-events: none; }
+.kbd .b .key-hint { color: #6d6366; }
+.hint { color: var(--muted); font-size: 13.5px; margin: 0; }
+.hint kbd { font-family: var(--display); font-weight: 600; background: var(--plot); border: 1px solid var(--edge); border-radius: 4px; padding: 0 5px; color: var(--text); }
+
+.tries { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.try { background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.try h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 17px; }
+.try p { margin: 0; color: var(--muted); font-size: 14px; }
+.try .btn { justify-self: start; font-size: 13px; padding: 6px 12px; }
+.note { color: var(--dim); font-size: 13px; margin: 0; }
+
+@media (max-width: 760px) {
+  .views { grid-template-columns: minmax(0, 1fr); }
+  .knobs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .adv-row, .adv-row.two { grid-template-columns: minmax(0, 1fr); }
+  .adv .knobs.body, .adv .knobs.fx { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .adv .knobs.env { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.adv .knobs.body { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.adv .knobs.fx { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.knobs.play, .knobs.kick { grid-template-columns: repeat(2, minmax(0, 84px)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="maker">EΣ Epsilon Sounds</span>
+      <h1>808 <span class="dot" aria-hidden="true"></span><small>Lab</small></h1>
+      <p class="lede">The Epsilon 808 engine running in your browser: same oscillator, punch, glide, drive, Translate, Glue and Phone Check as the plugin. Start the audio, then play the keys or run the trap pattern.</p>
+    </div>
+    <div class="transport">
+      <button class="btn hero" id="start" aria-pressed="false">Start audio</button>
+      <button class="btn" id="pattern" aria-pressed="false" disabled>Play pattern</button>
+      <button class="btn" id="drums" aria-pressed="true">Beat on</button>
+      <label class="label" for="preset" style="position:absolute;left:-9999px">Preset</label>
+      <select class="preset" id="preset"></select>
+      <span class="preset-note" id="presetNote"></span>
+    </div>
+  </header>
+
+  <section class="panel" id="panel">
+    <div class="views">
+      <div class="view" id="coneView"><canvas id="cone" aria-label="Speaker cone and note readout"></canvas></div>
+      <div class="view"><canvas id="tail" aria-label="Level and pitch over the last four seconds"></canvas></div>
+    </div>
+    <div class="row">
+      <button class="pill" id="advanced" aria-pressed="false">Show advanced</button>
+      <div class="seg" id="driveMode" style="--accent: var(--ember)" role="group" aria-label="Drive mode"></div>
+      <div class="seg" id="glideMode" role="group" aria-label="Glide mode"></div>
+      <button class="pill" id="kickLock" style="--c: var(--glass)" aria-pressed="false">Kick lock</button>
+      <button class="pill" id="clip" style="--c: var(--magma)" aria-pressed="true">Clip on</button>
+      <span class="phone-group"><button class="pill" id="phone" style="--c: var(--glass)" aria-pressed="false">Phone check</button><select id="phoneModel" class="mini" aria-label="Phone Check device"><option value="0">Phone</option><option value="1">Laptop</option><option value="2">Earbuds</option><option value="3">Car</option></select></span>
+    </div>
+    <div id="knobArea"></div>
+    <div id="park" hidden><div class="seg" id="prioritySeg" role="group" aria-label="Note priority"></div><div class="seg" id="kickModeSeg" style="--accent: var(--glass)" role="group" aria-label="Kick Lock mode"></div><button class="pill" id="retrigger" style="--c: var(--magma)" aria-pressed="false">Retrigger</button></div>
+    <div class="kbd-wrap"><div class="kbd" id="kbd"></div></div>
+    <p class="hint">Click the keys, or type <kbd>A</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>F</kbd>… with <kbd>Z</kbd> / <kbd>X</kbd> to change octave (<span id="oct">C1</span>). Hold a note and press another to hear the glide. Drag knobs up and down, double-click to reset.</p>
+  </section>
+
+  <section class="tries" aria-label="Things to try">
+    <div class="try">
+      <h3>Make it heard on phones</h3>
+      <p>Turns Phone Check on with Translate at 0. The 808 almost disappears. Then Translate goes to 70% and the line comes back.</p>
+      <button class="btn" data-try="translate">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Four drive flavours</h3>
+      <p>Cycles Tape, Tube, Hard and Fold at +18 dB, two bars each, over the pattern.</p>
+      <button class="btn" data-try="drive">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Glide styles</h3>
+      <p>Legato slides only where notes overlap. Always slides into every note, the drill sound.</p>
+      <button class="btn" data-try="glide">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Kick Lock</h3>
+      <p>One pass of the loop with Kick Lock off, then one with it on: the 808 snaps into phase with the kick and ducks under it. Listen to the low end tighten.</p>
+      <button class="btn" data-try="kick">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Split drive</h3>
+      <p>One pass with heavy Hard drive and Split off, then Split at 110 Hz: the grit stays, the sub comes back clean.</p>
+      <button class="btn" data-try="split">Run it</button>
+    </div>
+    <div class="try">
+      <h3>Punch and knock</h3>
+      <p>Punch 0 is a soft sine. Punch 24 with a short Punch Time is the knock that cuts through a kick.</p>
+      <button class="btn" data-try="punch">Run it</button>
+    </div>
+  </section>
+  <p class="note">The pattern is four bars at 140 BPM in C minor (Cm7, Abmaj7, Fm7, G7). All presets are loudness-matched, as in the plugin. Phone Check here filters the whole beat, so you hear the 808 against the drums the way a phone plays them; in the plugin it filters the 808 track. The plugin adds user presets, A/B slots, undo, a loudness meter, pitch-bend and host automation.</p>
+</div>
+
+<script>
+const ENGINE_SRC = String.raw`
+// Epsilon 808 engine, JavaScript port of Boom808Engine.cpp (same signal path and constants).
+class Svf { constructor() { this.ic1 = 0; this.ic2 = 0; this.low = 0; this.band = 0; this.high = 0; }
+  run(x, g, k) {
+    const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
+    const v3 = x - this.ic2, v1 = a1 * this.ic1 + a2 * v3, v2 = this.ic2 + a2 * this.ic1 + a3 * v3;
+    this.ic1 = 2 * v1 - this.ic1; this.ic2 = 2 * v2 - this.ic2;
+    this.low = v2; this.band = v1; this.high = x - k * v1 - v2; return this;
+  }
+  clear() { this.ic1 = this.ic2 = 0; }
+}
+const HB_TAPS = 47;
+// Halfband FIR: every other tap is zero, so only the non-zero ones are summed.
+let HB_NZ = null, HB_NZK = null;
+class Halfband {
+  constructor() { this.h = new Float32Array(HB_TAPS * 2); this.pos = 0; }
+  push(x) { this.h[this.pos] = x; this.h[this.pos + HB_TAPS] = x; this.pos = this.pos + 1 === HB_TAPS ? 0 : this.pos + 1; }
+  output(k) {
+    if (HB_NZ === null) { const idx = [], kk = []; for (let i = 0; i < HB_TAPS; ++i) { const c = k[HB_TAPS - 1 - i]; if (Math.abs(c) > 1e-9) { idx.push(i); kk.push(c); } } HB_NZ = Int32Array.from(idx); HB_NZK = Float64Array.from(kk); }
+    let s = 0; const h = this.h, p = this.pos, n = HB_NZ.length;
+    for (let j = 0; j < n; ++j) s += HB_NZK[j] * h[p + HB_NZ[j]];
+    return s;
+  }
+  clear() { this.h.fill(0); this.pos = 0; }
+}
+function newVoice() { return { phase: 0, subPhase: 0, env: 0, stage: 0, velocity: 1, punchTime: 1e9, clickTime: 1e9, clickNoiseLp: 0, clickPrev: 0, drift: 0 }; }
+const dbToGain = db => Math.pow(10, db / 20);
+const BW = 1.41421356;
+const logCosh = x => { const a = Math.abs(x); return a > 9 ? a - 0.6931471805599453 : a + Math.log1p(Math.exp(-2 * a)) - 0.6931471805599453; };
+const HA = 0.8, HB = 1.2, HW = 0.4;
+const hardShape = x => { const a = Math.abs(x); const y = a <= HA ? a : a < HB ? a - (a - HA) * (a - HA) / (2 * HW) : 1; return Math.sign(x) * y; };
+const hardInt = x => { const a = Math.abs(x); if (a <= HA) return 0.5 * a * a; if (a < HB) return 0.5 * a * a - (a - HA) ** 3 / (6 * HW); return 0.5 * HB * HB - HW * HW / 6 + (a - HB); };
+const CEIL = 0.92;
+const softUnit = x => { const a = Math.abs(x); return a < 0.9 ? x : Math.sign(x) * (0.9 + 0.1 * Math.tanh((a - 0.9) / 0.1)); };
+const softUnitInt = x => { const a = Math.abs(x); return a < 0.9 ? 0.5 * a * a : 0.405 + 0.9 * (a - 0.9) + 0.01 * logCosh((a - 0.9) / 0.1); };
+const softClip = x => CEIL * softUnit(x / CEIL);
+const softClipInt = x => CEIL * CEIL * softUnitInt(x / CEIL);
+const guardShape = x => { const a = Math.abs(x); return a < 0.95 ? x : Math.sign(x) * (0.95 + 0.05 * Math.tanh((a - 0.95) / 0.05)); };
+const guardInt = x => { const a = Math.abs(x); return a < 0.95 ? 0.5 * a * a : 0.45125 + 0.95 * (a - 0.95) + 0.0025 * logCosh((a - 0.95) / 0.05); };
+function adaa(st, x, F, f) { const Fx = F(x), d = x - st.x1; const y = Math.abs(d) > 1e-6 ? (Fx - st.f1) / d : f(0.5 * (x + st.x1)); st.x1 = x; st.f1 = Fx; return y; }
+class ClipStage {
+  constructor() { this.up = new Halfband(); this.down = new Halfband(); this.a = { x1: 0, f1: 0 }; this.g = { x1: 0, f1: 0 }; }
+  process(x, on, k) {
+    this.up.push(2 * x); let a = this.up.output(k); this.up.push(0); let b = this.up.output(k);
+    if (on) { a = adaa(this.a, a, softClipInt, softClip); b = adaa(this.a, b, softClipInt, softClip); } else { this.a.x1 = b; this.a.f1 = softClipInt(b); }
+    this.down.push(a); this.down.push(b); const y = this.down.output(k);
+    if (!on) { this.g.x1 = y; this.g.f1 = guardInt(y); return y; }
+    return adaa(this.g, y, guardInt, guardShape);
+  }
+}
+const CLIP_LATENCY = 23;
+const HEADROOM = 0.6;   // -4.4 dB, as in the plugin
+const gainToDb = g => 20 * Math.log10(Math.max(g, 1e-9));
+
+class Boom808 {
+  constructor(sr) {
+    this.sr = sr; this.srOs = sr * 4;
+    const besselI0 = x => { let sum = 1, term = 1; for (let k = 1; k < 30; ++k) { term *= (x / (2 * k)) * (x / (2 * k)); sum += term; } return sum; };
+    this.kernel = new Float32Array(HB_TAPS); let total = 0; const c = (HB_TAPS - 1) / 2;
+    for (let n = 0; n < HB_TAPS; ++n) {
+      const m = n - c, x = 0.5 * m, sinc = m === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x);
+      const r = 2 * n / (HB_TAPS - 1) - 1, w = besselI0(8 * Math.sqrt(Math.max(0, 1 - r * r))) / besselI0(8);
+      this.kernel[n] = 0.5 * sinc * w; total += this.kernel[n];
+    }
+    for (let n = 0; n < HB_TAPS; ++n) this.kernel[n] /= total;
+    this.stage1 = new Halfband(); this.stage2 = new Halfband();
+    this.voice = newVoice(); this.tail = newVoice(); this.tailGain = 0; this.tailStep = 0; this.tailNote = 36;
+    this.held = []; this.pending = null; this.releaseAfterPending = false; this.sounding = -1; this.priority = 0;
+    this.adaa = { x1: 0, f1: 0 }; this.adaaMode = 0; this.adaa.f1 = this.shapeInt(0, 0); this.dryPrev = 0;
+    this.sLp1 = new Svf(); this.sLp2 = new Svf(); this.sHp1 = new Svf(); this.sHp2 = new Svf();
+    this.clipL = new ClipStage(); this.clipR = new ClipStage();
+    this.driftPhase = 0; this.cDb = -1000; this.cMode = -1; this.cGain = 1; this.cNorm = 1;
+    this.counter = 0; this.kickLp = new Svf(); this.kPrev = 0; this.kFast = 0; this.kSlow = 0; this.lastUp = -1e9; this.lastOnset = -1e9;
+    this.waiting = false; this.waitStart = 0; this.lockQ = []; this.duckGain = 1; this.duckFalling = false; this.kickInFrame = false; this.lookahead = 0;
+    this.kickGroupDelay = Math.round(BW / (2 * Math.PI * 250) * sr + 23 / 4 + 23 / 2 + CLIP_LATENCY);
+    this.currentNote = 36; this.glideFrom = 36; this.targetNote = 36; this.glideElapsed = 0; this.glideTotal = 0;
+    this.dcX = 0; this.dcY = 0; this.smoothCutoff = 20000;
+    for (const n of ['filter', 'lowSplit1', 'lowSplit2', 'harmHp1', 'harmHp2', 'harmLp', 'widthHp', 'widthHp2', 'phA1', 'phA2', 'phB1', 'phB2', 'phC', 'coneLp']) this[n] = new Svf();
+    this.compEnv = 0; this.compGainDb = 0; this.transEnv = 0;
+    this.widthDelay = new Float32Array(2048); this.widthPos = 0;
+    this.noiseSeed = 22222 >>> 0;
+    this.win = this.blankWindow(); this.winCount = 0; this.framePeriod = Math.max(1, Math.floor(sr / 60));
+    this.onFrame = null;
+  }
+  blankWindow() { return { peakL: 0, peakR: 0, harmonics: 0, lowPeak: 0, gr: 0, duck: 0, kick: false }; }
+
+  startNote(note, velocity, fromSilence) {
+    const v = this.voice;
+    if (v.stage !== 0 && v.env > 0.0005) { this.tail = Object.assign({}, v); this.tailGain = 1; this.tailStep = 1 / (0.005 * this.srOs); this.tailNote = this.currentNote; }
+    v.phase = 0; v.subPhase = 0; v.env = 0; v.stage = 1; v.velocity = velocity; v.punchTime = 0; v.clickTime = 0; v.clickNoiseLp = v.clickPrev = 0; v.drift = Math.random() * 2 - 1;
+    if (fromSilence) { this.currentNote = this.glideFrom = this.targetNote = note; this.glideTotal = 0; }
+  }
+  choose() { const h = this.held; if (!h.length) return -1; if (this.priority === 0) return h[h.length - 1]; return this.priority === 1 ? Math.min(...h) : Math.max(...h); }
+  queue(note, velocity, legato, ret) { this.pending = { note, velocity, legato, ret }; this.sounding = note; }
+  noteOn(note, velocity) {
+    const wasHeld = this.held.length > 0;
+    this.held = this.held.filter(n => n !== note); this.held.push(note);
+    const t = this.choose(), v = Math.min(1, Math.max(0, velocity));
+    if (!wasHeld) this.queue(t, v, false, false); else if (t !== this.sounding) this.queue(t, v, true, false);
+  }
+  noteOff(note) {
+    const before = this.held.length; this.held = this.held.filter(n => n !== note);
+    if (this.held.length === before) return;
+    if (this.held.length === 0) { if (this.pending) this.releaseAfterPending = true; else if (this.voice.stage !== 0) this.voice.stage = 3; return; }
+    const t = this.choose(); if (t !== this.sounding) this.queue(t, this.voice.velocity, true, true);
+  }
+  allNotesOff() { this.held = []; this.pending = null; this.sounding = -1; if (this.voice.stage !== 0) this.voice.stage = 3; }
+
+  shape(x, mode) {
+    switch (mode) {
+      case 0: return Math.tanh(x);
+      case 1: { const t = Math.tanh(x); return t + 0.2 * t * t; }
+      case 2: return hardShape(x);
+      default: return Math.sin(x * Math.PI * 0.5);
+    }
+  }
+  shapeInt(x, mode) {
+    switch (mode) { case 0: return logCosh(x); case 1: return logCosh(x) + 0.2 * (x - Math.tanh(x)); case 2: return hardInt(x); default: return -2 / Math.PI * Math.cos(x * Math.PI * 0.5); }
+  }
+  driveSample(x, s) {
+    if (s.driveMix <= 0 && !(s.splitHz > 0)) { const dry = 0.5 * (x + this.dryPrev); this.dryPrev = x; this.adaa.x1 = x * this.cGain; this.adaaStale = true; return dry; }
+    const u = x * this.cGain;
+    if (this.adaaStale) { this.adaaStale = false; this.adaa.f1 = this.shapeInt(this.adaa.x1, s.driveMode); }
+    if (s.driveMode !== this.adaaMode) { this.adaaMode = s.driveMode; this.adaa.f1 = this.shapeInt(this.adaa.x1, s.driveMode); }
+    const f = this.shapeInt(u, s.driveMode), d = u - this.adaa.x1;
+    const shaped = Math.abs(d) > 1e-6 ? (f - this.adaa.f1) / d : this.shape(0.5 * (u + this.adaa.x1), s.driveMode);
+    this.adaa.x1 = u; this.adaa.f1 = f;
+    const dry = 0.5 * (x + this.dryPrev); this.dryPrev = x;
+    const mixed = dry + Math.min(1, Math.max(0, s.driveMix * 0.01)) * (shaped * this.cNorm - dry);
+    if (!(s.splitHz > 0)) return mixed;
+    const g = Math.tan(Math.PI * s.splitHz / this.srOs);
+    return this.sLp2.run(this.sLp1.run(dry, g, BW).low, g, BW).low + this.sHp2.run(this.sHp1.run(mixed, g, BW).high, g, BW).high;
+  }
+  sidechain(x) {
+    const sr = this.sr, lp = this.kickLp.run(x, Math.tan(Math.PI * 250 / sr), BW).low, up = this.kPrev < 0 && lp >= 0; this.kPrev = lp;
+    if (up) this.lastUp = this.counter;
+    const a = Math.abs(lp), dt = 1 / sr;
+    this.kFast += (a > this.kFast ? 1 - Math.exp(-dt / 0.0005) : 1 - Math.exp(-dt / 0.01)) * (a - this.kFast);
+    this.kSlow += (a > this.kSlow ? 1 - Math.exp(-dt / 0.02) : 1 - Math.exp(-dt / 0.15)) * (a - this.kSlow);
+    const sched = at => { this.lockQ.push(Math.max(this.counter, at + this.lookahead - this.kickGroupDelay)); };
+    if (this.kFast > 0.02 && this.kFast > 2.2 * this.kSlow + 0.003 && this.counter - this.lastOnset > 0.08 * sr) {
+      this.lastOnset = this.counter;
+      if (this.counter - this.lastUp < 0.006 * sr) sched(this.lastUp); else { this.waiting = true; this.waitStart = this.counter; }
+    } else if (this.waiting && (up || this.counter - this.waitStart > 0.03 * sr)) { this.waiting = false; sched(this.counter); }
+  }
+  lockPhase() {
+    this.kickInFrame = true; this.duckFalling = true;
+    const v = this.voice; if (v.stage === 0 || v.env < 0.001) return;
+    if (Math.min(v.phase, 1 - v.phase) < 30 / 360) return;
+    this.tail = Object.assign({}, v); this.tailGain = 1; this.tailStep = 1 / (0.004 * this.srOs); this.tailNote = this.currentNote;
+    v.phase = 0; v.subPhase = 0;
+  }
+  // per-render constants for the voice (the C++ computes the same values per sample)
+  voiceConstants(s, dtOs) {
+    const c = this.vc || (this.vc = {});
+    c.attackStep = dtOs / Math.max(0.0005 + 0.004 * s.analog, s.attackMs * 0.001);
+    c.decay = Math.exp(-6.9078 * dtOs / Math.max(0.02, s.lengthMs * 0.001));
+    c.release = Math.exp(-6.9078 * dtOs / Math.max(0.003, s.releaseMs * 0.001));
+    c.norm = 1 / (1 + 0.55 * s.tone + 0.8 * s.sub);
+    c.dt = dtOs;
+  }
+  voiceSample(v, s, hz) {
+    if (v.stage === 0) return 0;
+    const c = this.vc;
+    if (v.stage === 1) { v.env += c.attackStep; if (v.env >= 1) { v.env = 1; v.stage = 2; } }
+    else if (v.stage === 2) v.env = s.sustain + (v.env - s.sustain) * c.decay;
+    else { v.env *= c.release; if (v.env < 1e-5) { v.env = 0; v.stage = 0; } }
+    const inc = hz / this.srOs;
+    v.phase += inc; if (v.phase >= 1) v.phase -= 1;
+    const p = 6.283185307179586 * v.phase, sp = Math.sin(p);
+    let body = sp;
+    if (s.tone > 0) { const cp = Math.cos(p); body += s.tone * (0.35 * 2 * sp * cp + 0.2 * (3 * sp - 4 * sp * sp * sp)); }
+    if (s.sub > 0) { v.subPhase += 0.5 * inc; if (v.subPhase >= 1) v.subPhase -= 1; body += s.sub * 0.8 * Math.sin(6.283185307179586 * v.subPhase); }
+    else { v.subPhase += 0.5 * inc; if (v.subPhase >= 1) v.subPhase -= 1; }
+    const vg = 0.35 + 0.65 * v.velocity;
+    let out = body * c.norm * v.env * vg;
+    if (v.clickTime < 0.03 && s.click > 0) {
+      this.noiseSeed = (Math.imul(this.noiseSeed, 1664525) + 1013904223) >>> 0;
+      const noise = ((this.noiseSeed >>> 9) - (1 << 22)) / (1 << 22);
+      v.clickNoiseLp += 0.35 * (noise - v.clickNoiseLp);
+      const bright = v.clickNoiseLp - v.clickPrev; v.clickPrev = v.clickNoiseLp;
+      const t = v.clickTime, blip = Math.sin(6.283185307179586 * 1600 * t) * Math.exp(-t / 0.005);
+      out += s.click * vg * 0.7 * (bright * 1.6 * Math.exp(-t / 0.003) + 0.6 * blip);
+    }
+    v.clickTime += c.dt; v.punchTime += c.dt;
+    return out;
+  }
+
+  // s: plugin-unit settings (percent values already scaled like readSettings()); sc = sidechain (mono) or null
+  render(L, R, start, end, s, sc) {
+    const sr = this.sr, dtOs = 1 / this.srOs, dt = 1 / sr;
+    const outGain = dbToGain(s.outputDb);
+    const translate = s.translate * 0.01, glue = s.glue * 0.01, width = s.width * 0.01;
+    const tw = hz => Math.tan(Math.PI * Math.min(hz, sr * 0.45) / sr);
+    const gSplit = tw(140), gHarmHp = tw(180), gHarmLp = tw(3000), gWidth = tw(160), gCone = tw(120);
+    const filterOn = s.cutoffHz < 19500 || s.resonance > 0.001, k = 2 - 1.9 * s.resonance;
+    const transAttack = 1 - Math.exp(-dt / 0.004), transRelease = 1 - Math.exp(-dt / 0.06);
+    const compAttack = 1 - Math.exp(-dt / 0.003), compRelease = 1 - Math.exp(-dt / 0.12), grAttack = 1 - Math.exp(-dt / 0.002), grRelease = 1 - Math.exp(-dt / 0.1);
+    const threshold = -4 - 20 * glue, ratio = 1 + 4 * glue, makeup = 6 * glue;
+    const widthTaps = Math.min(this.widthDelay.length - 1, Math.floor(0.007 * sr));
+    this.lookahead = s.kickLock && s.kickMode === 0 ? Math.round(0.005 * sr) : 0;
+    const kickOn = s.kickLock && sc;
+    const duckFloor = 0.18, duckFall = (1 - duckFloor) / (0.001 * sr), duckRise = s.duckMs > 0.5 ? 1 - Math.exp(-dt / (s.duckMs * 0.001 / 3)) : 1;
+    let gA, gC;
+    switch (s.phoneModel) { case 1: gA = tw(170); gC = tw(12000); break; case 2: gA = tw(45); gC = tw(14000); break; case 3: gA = tw(70); gC = tw(10000); break; default: gA = tw(320); gC = tw(6000); }
+    this.voiceConstants(s, dtOs);
+    const os = [0, 0, 0, 0], v = this.voice;
+    for (let i = start; i < end; ++i) {
+      if (this.pending) {
+        const pe = this.pending; this.pending = null; const note = pe.note;
+        if (!pe.legato) {
+          const fromSounding = s.glideMode === 1 && v.stage !== 0 && s.glideMs > 0.5;
+          this.startNote(note, pe.velocity, !fromSounding);
+          if (fromSounding) { this.glideFrom = this.currentNote; this.targetNote = note; this.glideElapsed = 0; this.glideTotal = s.glideMs * 0.001; }
+        } else if (s.glideMode === 2 || s.glideMs <= 0.5) {
+          if (pe.ret) { this.currentNote = this.glideFrom = this.targetNote = note; this.glideTotal = 0; } else this.startNote(note, pe.velocity, true);
+        } else {
+          this.glideFrom = this.currentNote; this.targetNote = note; this.glideElapsed = 0; this.glideTotal = s.glideMs * 0.001;
+          if (s.retrigger && !pe.ret && v.stage !== 0) { v.punchTime = 0; v.clickTime = 0; v.clickNoiseLp = v.clickPrev = 0; v.velocity = pe.velocity; v.stage = 1; }
+        }
+        if (this.releaseAfterPending) { this.releaseAfterPending = false; if (this.held.length === 0 && v.stage !== 0) v.stage = 3; }
+      }
+      if (kickOn) this.sidechain(sc[i]);
+      if (this.lockQ.length && this.lockQ[0] <= this.counter) { this.lockQ.shift(); if (s.kickLock) this.lockPhase(); }
+      if (this.glideTotal > 0 && this.glideElapsed < this.glideTotal) {
+        this.glideElapsed += dt; const u = Math.min(1, this.glideElapsed / this.glideTotal), e = 1 - (1 - u) ** 3;
+        this.currentNote = this.glideFrom + (this.targetNote - this.glideFrom) * e;
+      } else this.currentNote = this.targetNote;
+
+      const punchScale = 1 - s.velPunch + s.velPunch * v.velocity;
+      const punchTau = Math.max(0.002, s.punchMs * 0.001 / 3);
+      const punch = v.punchTime < 12 * punchTau ? s.punchSemitones * punchScale * Math.exp(-v.punchTime / punchTau) : 0;
+      this.driftPhase += 0.23 / sr; if (this.driftPhase >= 1) this.driftPhase -= 1;
+      const analog = s.analog > 0 ? s.analog * (0.04 * v.drift + 0.015 * Math.sin(2 * Math.PI * this.driftPhase) - (v.stage >= 2 ? 0.3 * (1 - v.env) : 0)) : 0;
+      const semis = this.currentNote + s.tuneSemitones + s.fineCents * 0.01 + punch + analog;
+      if (semis !== this.lastSemis) { this.lastSemis = semis; this.lastHz = Math.min(440 * Math.pow(2, (semis - 69) / 12), sr * 0.45); }
+      const hz = this.lastHz;
+      let tailHz = 0;
+      if (this.tailGain > 0) {
+        const tailPunch = s.punchSemitones * punchScale * Math.exp(-this.tail.punchTime / punchTau);
+        tailHz = Math.min(440 * Math.pow(2, (this.tailNote + s.tuneSemitones + s.fineCents * 0.01 + tailPunch - 69) / 12), sr * 0.45);
+      }
+      const driveDb = s.driveDb * (1 - s.velDrive + s.velDrive * v.velocity);
+      if (driveDb !== this.cDb || s.driveMode !== this.cMode) {
+        this.cDb = driveDb; this.cMode = s.driveMode;
+        this.cGain = dbToGain(s.driveMode === 3 ? 0.6 * driveDb : driveDb);
+        this.cNorm = s.driveMode === 3 ? 1 : 1 / Math.max(0.05, Math.abs(this.shape(this.cGain, s.driveMode)));
+      }
+      for (let o = 0; o < 4; ++o) {
+        let x = this.voiceSample(v, s, hz);
+        if (this.tailGain > 0) { x += this.tailGain * this.voiceSample(this.tail, s, tailHz); this.tailGain = Math.max(0, this.tailGain - this.tailStep); }
+        os[o] = this.driveSample(x, s);
+      }
+      this.stage1.push(os[0]); this.stage1.push(os[1]); const h0 = this.stage1.output(this.kernel);
+      this.stage1.push(os[2]); this.stage1.push(os[3]); const h1 = this.stage1.output(this.kernel);
+      this.stage2.push(h0); this.stage2.push(h1); let y = this.stage2.output(this.kernel);
+      const dcOut = y - this.dcX + 0.9995 * this.dcY; this.dcX = y; this.dcY = dcOut; y = dcOut * HEADROOM;
+      if (filterOn) { this.smoothCutoff += 0.002 * (s.cutoffHz - this.smoothCutoff); y = this.filter.run(y, tw(this.smoothCutoff), k).low; }
+      let harm = 0;
+      if (translate > 0) {
+        const low = this.lowSplit2.run(this.lowSplit1.run(y, gSplit, 1.4).low, gSplit, 1.4).low;
+        const lv = Math.abs(low); this.transEnv += (lv > this.transEnv ? transAttack : transRelease) * (lv - this.transEnv);
+        const sq = Math.tanh(3 * low / (this.transEnv + 1e-4));
+        const gen = (sq + 0.6 * (Math.abs(sq) - 0.64)) * this.transEnv;
+        harm = this.harmHp2.run(this.harmHp1.run(gen, gHarmHp, 1.4).high, gHarmHp, 1.4).high;
+        harm = this.harmLp.run(harm, gHarmLp, 1.4).low;
+        y += translate * 2.4 * harm;
+      }
+      if (glue > 0) {
+        const level = Math.abs(y);
+        this.compEnv += (level > this.compEnv ? compAttack : compRelease) * (level - this.compEnv);
+        const over = gainToDb(this.compEnv) - threshold, target = over > 0 ? over * (1 - 1 / ratio) : 0;
+        this.compGainDb += (target > this.compGainDb ? grAttack : grRelease) * (target - this.compGainDb);
+        y *= dbToGain(makeup - this.compGainDb);
+      } else this.compGainDb = 0;
+      let l = y, r = y;
+      if (width > 0) {
+        const high = this.widthHp2.run(this.widthHp.run(y, gWidth, 1.4).high, gWidth, 1.4).high;
+        const n = this.widthDelay.length; this.widthDelay[this.widthPos] = high;
+        const delayed = this.widthDelay[(this.widthPos - widthTaps + n) % n]; this.widthPos = (this.widthPos + 1) % n;
+        l += width * 0.5 * delayed; r -= width * 0.5 * delayed;
+      }
+      if (this.duckFalling && s.duckMs > 0.5) { this.duckGain -= duckFall; if (this.duckGain <= duckFloor) { this.duckGain = duckFloor; this.duckFalling = false; } }
+      else { this.duckFalling = false; this.duckGain += duckRise * (1 - this.duckGain); }
+      l *= this.duckGain * outGain; r *= this.duckGain * outGain;
+      l = this.clipL.process(l, s.clip, this.kernel); r = this.clipR.process(r, s.clip, this.kernel);
+      const w = this.win;
+      const lowForCone = this.coneLp.run(0.5 * (l + r), gCone, 1.4).low;
+      w.peakL = Math.max(w.peakL, Math.abs(l)); w.peakR = Math.max(w.peakR, Math.abs(r));
+      w.harmonics = Math.max(w.harmonics, Math.abs(translate * 1.6 * harm)); w.lowPeak = Math.max(w.lowPeak, Math.abs(lowForCone));
+      w.gr = Math.max(w.gr, this.compGainDb); w.duck = Math.max(w.duck, 1 - this.duckGain);
+      if (++this.winCount >= this.framePeriod) {
+        w.env = v.env; w.hz = v.stage !== 0 ? hz : 0; w.note = v.stage !== 0 ? semis - punch : -1; w.kick = this.kickInFrame;
+        if (this.onFrame) this.onFrame(w);
+        this.win = this.blankWindow(); this.winCount = 0; this.kickInFrame = false;
+      }
+      if (s.phone) {
+        if (s.phoneModel <= 1) {
+          const mono = 0.5 * (l + r);
+          let p = this.phA2.run(this.phA1.run(mono, gA, BW).high, gA, BW).high;
+          p = this.phC.run(p, gC, BW).low * (s.phoneModel === 0 ? 1.4 : 1.2); l = r = p;
+        } else if (s.phoneModel === 2) { l = this.phA1.run(l, gA, BW).high; r = this.phB1.run(r, gA, BW).high; }
+        else { l += this.phA1.run(l, gA, BW).low; r += this.phB1.run(r, gA, BW).low; l = this.phA2.run(l, gC, BW).low; r = this.phB2.run(r, gC, BW).low; }
+      }
+      L[i] = l; R[i] = r; this.counter++;
+    }
+  }
+}
+`;
+const Boom808 = new Function(ENGINE_SRC + "; return Boom808;")();
+
+// ---------- parameters (same IDs, ranges and defaults as the plugin) ----------
+const skew = (lo, hi, centre) => Math.log(0.5) / Math.log((centre - lo) / (hi - lo));
+const msText = v => v < 1000 ? (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ms' : (v / 1000).toFixed(2) + ' s';
+const hzText = v => v < 1000 ? Math.round(v) + ' Hz' : (v / 1000).toFixed(1) + ' kHz';
+const pct = v => Math.round(v) + '%';
+const sign = v => (v > 0 ? '+' : '') ;
+const SPECS = [
+  { id: 'tune', name: 'Tune', lo: -24, hi: 24, def: 0, step: 1, group: 'body', simple: 0, color: 'magma', fmt: v => sign(v) + Math.round(v) + ' st', bipolar: true },
+  { id: 'fine', name: 'Fine', lo: -100, hi: 100, def: 0, group: 'body', color: 'magma', fmt: v => sign(v) + Math.round(v) + ' ct', bipolar: true },
+  { id: 'punch', name: 'Punch', lo: 0, hi: 24, def: 12, group: 'body', simple: 1, color: 'magma', fmt: v => '+' + v.toFixed(1) + ' st' },
+  { id: 'punchTime', name: 'Punch time', lo: 5, hi: 300, centre: 50, def: 45, group: 'body', color: 'magma', fmt: msText },
+  { id: 'tone', name: 'Tone', lo: 0, hi: 100, def: 15, group: 'body', color: 'magma', fmt: pct },
+  { id: 'sub', name: 'Sub', lo: 0, hi: 100, def: 0, group: 'body', color: 'magma', fmt: pct },
+  { id: 'click', name: 'Click', lo: 0, hi: 100, def: 15, group: 'body', color: 'magma', fmt: pct },
+  { id: 'analog', name: 'Analog', lo: 0, hi: 100, def: 0, group: 'body', color: 'magma', fmt: pct },
+  { id: 'attack', name: 'Attack', lo: 0.5, hi: 50, centre: 5, def: 1, group: 'env', color: 'text', fmt: msText },
+  { id: 'length', name: 'Length', lo: 50, hi: 8000, centre: 1200, def: 1600, group: 'env', simple: 2, color: 'text', fmt: msText },
+  { id: 'sustain', name: 'Sustain', lo: 0, hi: 100, def: 0, group: 'env', color: 'text', fmt: pct },
+  { id: 'release', name: 'Release', lo: 5, hi: 2000, centre: 200, def: 120, group: 'env', color: 'text', fmt: msText },
+  { id: 'glide', name: 'Glide', lo: 0, hi: 1000, centre: 150, def: 90, group: 'env', simple: 4, color: 'text', fmt: msText },
+  { id: 'drive', name: 'Drive', lo: 0, hi: 36, def: 6, group: 'fx', simple: 3, hero: true, color: 'ember', fmt: v => '+' + v.toFixed(1) + ' dB' },
+  { id: 'driveMix', name: 'Drive mix', lo: 0, hi: 100, def: 100, group: 'fx', color: 'ember', fmt: pct },
+  { id: 'split', name: 'Split', lo: 50, hi: 250, centre: 110, def: 50, group: 'fx', color: 'ember', fmt: v => v <= 50.5 ? 'Off' : hzText(v) },
+  { id: 'cutoff', name: 'Cutoff', lo: 40, hi: 20000, centre: 900, def: 20000, group: 'fx', color: 'ember', fmt: v => v >= 19500 ? 'Open' : hzText(v) },
+  { id: 'resonance', name: 'Resonance', lo: 0, hi: 100, def: 0, group: 'fx', color: 'ember', fmt: pct },
+  { id: 'translate', name: 'Translate', lo: 0, hi: 100, def: 0, group: 'fx', simple: 5, color: 'glass', fmt: pct },
+  { id: 'glue', name: 'Glue', lo: 0, hi: 100, def: 30, group: 'fx', simple: 6, color: 'ember', fmt: pct },
+  { id: 'width', name: 'Width', lo: 0, hi: 100, def: 0, group: 'fx', color: 'ember', fmt: pct },
+  { id: 'output', name: 'Output', lo: -24, hi: 12, def: 0, group: 'fx', color: 'text', fmt: v => sign(v) + v.toFixed(1) + ' dB', bipolar: true },
+  { id: 'velPunch', name: 'Vel > punch', lo: 0, hi: 100, def: 0, group: 'play', color: 'text', fmt: pct },
+  { id: 'velDrive', name: 'Vel > drive', lo: 0, hi: 100, def: 0, group: 'play', color: 'text', fmt: pct },
+  { id: 'duck', name: 'Duck', lo: 0, hi: 150, def: 60, group: 'kick', color: 'glass', fmt: msText, session: true },
+];
+const BEND_DEFAULT = 2;
+const CHOICES = { driveMode: { def: 0, labels: ['Tape', 'Tube', 'Hard', 'Fold'] }, glideMode: { def: 0, labels: ['Legato', 'Always', 'Off'] }, priority: { def: 0, labels: ['Last', 'Low', 'High'] }, kickMode: { def: 0, labels: ['Exact', 'Live'], session: true } };
+const PRESETS = [
+  ["Init 808", "Clean", {  }, "A clean, punchy 808. Start here."],
+  ["Clean Sub", "Clean", { punch: 4, tone: 0, drive: 0, click: 0, glue: 20, length: 5000, sustain: 60, analog: 10, translate: 25, output: -2.5 }, "Almost a pure sine. For R&B, ballads and big systems."],
+  ["Pure Sine", "Clean", { punch: 0, tone: 0, click: 0, drive: 0, glue: 0, sustain: 100, length: 8000, release: 200, output: -3 }, "Nothing added. Layer it under another bass."],
+  ["Soft Boom", "Clean", { punch: 5, punchTime: 80, attack: 6, tone: 10, click: 0, drive: 2, length: 4000, analog: 40, glue: 25, translate: 25, output: -1 }, "Round and warm, no knock. Sits under vocals."],
+  ["R&B Sub", "Clean", { punch: 3, tone: 10, click: 5, drive: 3, glue: 30, length: 3500, sustain: 40, glide: 120, analog: 25, translate: 30, output: -1.5 }, "Smooth sustained sub with gentle slides."],
+  ["Long Trap 808", "Trap", { punch: 12, punchTime: 40, length: 3500, glide: 120, drive: 9, glue: 35, translate: 30, click: 10, velPunch: 30, analog: 15, output: -2 }, "The classic long trap tail. Overlap notes to slide."],
+  ["Trap Classic", "Trap", { punch: 14, punchTime: 50, length: 2800, glide: 100, drive: 10, tone: 20, translate: 35, glue: 35, velPunch: 30, split: 90, output: 1 }, "Punchy, slightly driven, heard on phones."],
+  ["Club Trap", "Trap", { punch: 16, punchTime: 35, length: 2400, click: 25, drive: 14, driveMode: 1, split: 100, translate: 40, glue: 45, velPunch: 40, output: 2 }, "Hard knock and Tube grit with a clean sub under it."],
+  ["Glide Machine", "Trap", { glide: 180, glideMode: 1, length: 4000, sustain: 30, drive: 12, driveMode: 1, translate: 40, split: 100, glue: 35, output: -0.5 }, "Slides into every note. Sustains while held."],
+  ["Deep Tail", "Trap", { punch: 9, length: 7000, sub: 25, drive: 6, release: 400, analog: 20, glue: 30, translate: 35, output: -2 }, "Seven-second tail with an octave-down sub."],
+  ["Southern Boom", "Trap", { punch: 10, length: 5000, sub: 15, drive: 10, driveMode: 1, translate: 30, analog: 35, glue: 40, split: 90, output: 1 }, "Warm Tube boom with analog drift."],
+  ["Velvet Trap", "Trap", { punch: 8, length: 3000, tone: 10, drive: 4, glue: 25, analog: 30, translate: 35, output: -1 }, "Soft-edged trap 808 for melodic beats."],
+  ["Drill Slide", "Drill", { glide: 220, glideMode: 1, bendRange: 12, punch: 7, length: 2600, drive: 14, driveMode: 2, tone: 25, translate: 45, split: 110, glue: 40, output: 1 }, "Long slides into every note, Hard drive, 12-semitone bend."],
+  ["UK Drill", "Drill", { glide: 260, glideMode: 1, punch: 6, length: 2200, drive: 18, driveMode: 2, tone: 30, translate: 50, retrigger: 1, split: 110, priority: 1, glue: 40, output: 0.5 }, "Low-note priority, fresh punch on every slide."],
+  ["NY Drill", "Drill", { glide: 200, glideMode: 1, punch: 10, length: 1800, drive: 22, driveMode: 1, tone: 25, translate: 55, click: 30, split: 100, retrigger: 1, glue: 45, output: 1 }, "Dirtier and brighter, knocks on every slide."],
+  ["Low Note Drill", "Drill", { priority: 1, glide: 180, length: 2500, drive: 14, driveMode: 2, translate: 45, split: 110, glue: 35, output: 0.5 }, "Hold a low note and tap higher ones: the low note wins."],
+  ["Slide Grit", "Drill", { glide: 240, glideMode: 1, drive: 24, cutoff: 5000, translate: 40, split: 120, glue: 40, output: 0.5 }, "Gritty Tape slides with the fizz filtered off."],
+  ["Distorted 808", "Distorted", { drive: 26, driveMode: 1, tone: 30, translate: 50, cutoff: 6000, glue: 40, split: 100, output: 0.5 }, "Heavy Tube distortion, clean sub under it."],
+  ["Hard Clip 808", "Distorted", { drive: 24, driveMode: 2, glue: 20, click: 25, split: 90, cutoff: 9000, output: -1.5 }, "Aggressive clipped edge."],
+  ["Fold Growl", "Distorted", { drive: 24, driveMode: 3, driveMix: 70, tone: 20, cutoff: 3500, resonance: 25, split: 110, output: 0.5 }, "Wavefolder growl through a resonant filter."],
+  ["Rage Fuzz", "Distorted", { drive: 34, driveMode: 2, tone: 40, translate: 60, cutoff: 6500, glue: 45, split: 90, width: 30, output: -1 }, "Maximum fuzz for rage beats. Sub stays solid."],
+  ["Tube Warmth", "Distorted", { drive: 15, driveMode: 1, driveMix: 60, tone: 20, glue: 30, analog: 20, translate: 30, output: -0.5 }, "Half clean, half Tube. Thick but polite."],
+  ["Tape Saturated", "Distorted", { drive: 18, tone: 15, translate: 30, glue: 40, split: 80, analog: 15, output: 1 }, "Tape saturation with a clean low end."],
+  ["Screamer", "Distorted", { drive: 30, driveMode: 3, driveMix: 55, tone: 35, cutoff: 2800, resonance: 40, split: 120, output: 1 }, "Folded and filtered, almost vocal."],
+  ["Punchy Short", "Short", { length: 450, punch: 18, punchTime: 30, click: 35, drive: 10, glue: 50, velPunch: 40, output: 4 }, "Short and tight. Velocity sets the knock."],
+  ["Knock", "Short", { punch: 24, punchTime: 25, length: 700, click: 50, drive: 16, glue: 60, split: 90, velPunch: 40, output: 6 }, "Maximum punch. Cuts through any kick."],
+  ["Bounce", "Short", { length: 600, punch: 16, punchTime: 35, click: 25, drive: 10, glue: 45, velPunch: 50, translate: 30, output: 3 }, "Bouncy short 808 for up-tempo beats."],
+  ["Detroit Tap", "Short", { length: 350, punch: 20, punchTime: 20, click: 45, drive: 14, driveMode: 2, glue: 55, translate: 30, split: 100, output: 7.5 }, "Tapped, Hard-driven, very short."],
+  ["Kick 808", "Short", { punch: 24, punchTime: 30, length: 1200, click: 60, drive: 12, glue: 50, velPunch: 40, velDrive: 30, split: 80, output: 4 }, "Doubles as the kick. Accents hit harder and dirtier."],
+  ["Melodic Glide", "Melodic", { glide: 140, length: 3000, sustain: 50, tone: 30, drive: 8, translate: 45, analog: 15, output: -3 }, "Sustained and bright enough to carry a melody."],
+  ["Bell Sub", "Melodic", { tone: 60, punch: 2, drive: 5, translate: 50, length: 2500, cutoff: 4000, click: 5 }, "Bell-like harmonics over the sub."],
+  ["Plucked Bass", "Melodic", { length: 800, tone: 45, punch: 6, punchTime: 20, drive: 10, driveMode: 1, cutoff: 2500, resonance: 30, velDrive: 40, translate: 30, output: 2.5 }, "Short pluck with a resonant filter. Accents get dirtier."],
+  ["Log Drum", "Log Drum", { tune: 12, length: 320, punch: 9, punchTime: 14, click: 55, tone: 60, drive: 6, cutoff: 1500, resonance: 45, glide: 60, glideMode: 1, translate: 30, glue: 40, output: 4 }, "Amapiano log drum. Play from C1; it sounds an octave up."],
+  ["Log Drum Deep", "Log Drum", { tune: 7, length: 450, punch: 7, punchTime: 18, click: 45, tone: 50, drive: 4, cutoff: 1100, resonance: 40, glide: 80, glideMode: 1, glue: 35, translate: 20, output: 4 }, "Darker, longer log drum."],
+  ["Log Drum Bright", "Log Drum", { tune: 12, length: 260, punch: 12, punchTime: 10, click: 70, tone: 70, drive: 10, cutoff: 2400, resonance: 50, glide: 50, glideMode: 1, translate: 40, glue: 40, output: 3 }, "Bright log drum that cuts through."],
+  ["Amapiano Slide", "Log Drum", { tune: 12, length: 380, punch: 8, punchTime: 15, click: 50, tone: 55, cutoff: 1400, resonance: 42, glide: 140, glideMode: 1, retrigger: 1, glue: 35, output: 3 }, "Log drum with long slides and a fresh hit on each."],
+  ["Wide Character", "Wide", { width: 60, tone: 30, drive: 14, driveMode: 1, translate: 35, split: 100, output: 2 }, "Wide Tube harmonics; the sub stays mono."],
+  ["Stereo Grit", "Wide", { width: 70, drive: 20, driveMode: 1, tone: 35, translate: 45, split: 110, glue: 40, output: 1.5 }, "Wide and gritty for big choruses."],
+  ["Wide Fold", "Wide", { width: 50, drive: 22, driveMode: 3, driveMix: 65, cutoff: 3800, resonance: 20, split: 110, output: 1 }, "Wide wavefolder texture."],
+  ["Phone Ready", "Mix Ready", { translate: 80, drive: 12, tone: 35, click: 30, split: 100, glue: 40, output: 2.5 }, "Built to be heard on phone speakers."],
+  ["Heard Everywhere", "Mix Ready", { translate: 65, split: 100, drive: 10, glue: 45, tone: 25, analog: 10, output: 3 }, "Balanced for phones, laptops and clubs."],
+];
+const P = {};               // plain values
+for (const s of SPECS) P[s.id] = s.def;
+for (const k in CHOICES) P[k] = CHOICES[k].def;
+P.clip = 1; P.phone = 0; P.retrigger = 0; P.kickLock = 0; P.phoneModel = 0; P.bendRange = BEND_DEFAULT;
+const toNorm = (s, v) => { const t = (v - s.lo) / (s.hi - s.lo); return s.centre ? Math.pow(Math.max(0, t), skew(s.lo, s.hi, s.centre)) : t; };
+const fromNorm = (s, p) => { p = Math.min(1, Math.max(0, p)); let v = s.centre ? s.lo + (s.hi - s.lo) * Math.pow(p, 1 / skew(s.lo, s.hi, s.centre)) : s.lo + (s.hi - s.lo) * p; if (s.step) v = Math.round(v / s.step) * s.step; return v; };
+
+function engineSettings() {
+  return {
+    tuneSemitones: P.tune, fineCents: P.fine, punchSemitones: P.punch, punchMs: P.punchTime,
+    tone: P.tone * 0.01, sub: P.sub * 0.01, click: P.click * 0.01, analog: P.analog * 0.01,
+    attackMs: P.attack, lengthMs: P.length, sustain: P.sustain * 0.01, releaseMs: P.release,
+    glideMs: P.glide, glideMode: P.glideMode, retrigger: P.retrigger > 0.5, velPunch: P.velPunch * 0.01, velDrive: P.velDrive * 0.01,
+    driveDb: P.drive, driveMode: P.driveMode, driveMix: P.driveMix, splitHz: P.split <= 50.5 ? 0 : P.split,
+    cutoffHz: P.cutoff, resonance: P.resonance * 0.01, translate: P.translate, glue: P.glue, width: P.width,
+    outputDb: P.output, kickLock: P.kickLock > 0.5, kickMode: P.kickMode, duckMs: P.duck,
+    clip: P.clip > 0.5, phone: false, phoneModel: P.phoneModel, priority: P.priority,
+  };
+}
+
+// ---------- audio ----------
+const WORKLET_SRC = ENGINE_SRC + String.raw`
+class BoomProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.e = new Boom808(sampleRate); this.s = null; this.q = [];
+    this.e.onFrame = f => this.port.postMessage(Object.assign({}, f));
+    this.port.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 's') { this.s = m.s; this.e.priority = m.s.priority; }
+      else if (m.type === 'panic') { this.q = []; this.e.allNotesOff(); }
+      else { this.q.push(m); this.q.sort((a, b) => a.t - b.t); }
+    };
+  }
+  process(inputs, outputs) {
+    const out = outputs[0], L = out[0], R = out[1] || out[0], n = L.length;
+    if (!this.s) return true;
+    const sc = inputs[0] && inputs[0][0] ? inputs[0][0] : null;
+    let pos = 0;
+    while (pos < n) {
+      let next = n;
+      if (this.q.length) {
+        const at = Math.round(this.q[0].t * sampleRate) - currentFrame;
+        if (at <= pos) { const m = this.q.shift(); if (m.type === 'on') this.e.noteOn(m.note, m.vel); else this.e.noteOff(m.note); continue; }
+        next = Math.min(n, at);
+      }
+      this.e.render(L, R, pos, next, this.s, sc);
+      pos = next;
+    }
+    return true;
+  }
+}
+registerProcessor('boom-808', BoomProcessor);`;
+
+let ctx = null, node = null, master = null, drumBus = null, kickSend = null, fallback = null, frame = null, phoneIn = null, phoneNodes = [];
+// Phone Check in the Lab filters the whole beat (the plugin filters the 808 track): approximate device curves.
+function buildPhoneChain() {
+  if (!ctx) return;
+  phoneIn.disconnect(); phoneNodes.forEach(n => n.disconnect()); phoneNodes = [];
+  if (!(P.phone > 0.5)) { phoneIn.connect(ctx.destination); return; }
+  const chain = []; const bq = (type, f, q, gain) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; if (gain !== undefined) b.gain.value = gain; return b; };
+  const mono = () => { const g = ctx.createGain(); g.channelCount = 1; g.channelCountMode = 'explicit'; g.channelInterpretation = 'speakers'; return g; };
+  switch (P.phoneModel) {
+    case 1: chain.push(mono(), bq('highpass', 170, 0.71), bq('highpass', 170, 0.71), bq('lowpass', 12000, 0.71)); break;
+    case 2: chain.push(bq('highpass', 45, 0.71)); break;
+    case 3: chain.push(bq('lowshelf', 70, 0.71, 6), bq('lowpass', 10000, 0.71)); break;
+    default: chain.push(mono(), bq('highpass', 320, 0.71), bq('highpass', 320, 0.71), bq('lowpass', 6000, 0.71), bq('peaking', 2500, 1, 2));
+  }
+  let prev = phoneIn; for (const n of chain) { prev.connect(n); prev = n; } prev.connect(ctx.destination); phoneNodes = chain;
+}
+let drumsOn = true;
+const send = m => { if (node) node.port.postMessage(m); else if (fallback) fallback.handle(m); };
+const pushSettings = () => send({ type: 's', s: engineSettings() });
+
+async function startAudio() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  master = ctx.createGain(); master.gain.value = 0.9;
+  const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -14; glue.ratio.value = 2.5; glue.attack.value = 0.012; glue.release.value = 0.16; glue.knee.value = 6;
+  const limit = ctx.createDynamicsCompressor(); limit.threshold.value = -2; limit.ratio.value = 20; limit.attack.value = 0.001; limit.release.value = 0.08; limit.knee.value = 0;
+  master.connect(glue); glue.connect(limit);
+  phoneIn = limit; buildPhoneChain();
+  drumBus = ctx.createGain(); drumBus.gain.value = 0.7; drumBus.connect(master);
+  kickSend = ctx.createGain(); kickSend.gain.value = 1;   // the pattern's kick, routed to Kick Lock's sidechain
+  try {
+    const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
+    await ctx.audioWorklet.addModule(url);
+    node = new AudioWorkletNode(ctx, 'boom-808', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 1, channelCountMode: 'explicit' });
+    kickSend.connect(node);
+    node.port.onmessage = ev => { frame = ev.data; };
+    node.connect(master);
+  } catch (err) {
+    // Older browsers: same engine on the main thread.
+    const eng = new Boom808(ctx.sampleRate); eng.onFrame = f => { frame = Object.assign({}, f); };
+    const q = []; let s = engineSettings();
+    fallback = { handle: m => { if (m.type === 's') { s = m.s; eng.priority = m.s.priority; } else if (m.type === 'panic') { q.length = 0; eng.allNotesOff(); } else { q.push(m); q.sort((a, b) => a.t - b.t); } } };
+    const sp = ctx.createScriptProcessor(1024, 1, 2);
+    kickSend.connect(sp);
+    sp.onaudioprocess = ev => {
+      const L = ev.outputBuffer.getChannelData(0), R = ev.outputBuffer.getChannelData(1), n = L.length, t0 = ev.playbackTime, sc = ev.inputBuffer.getChannelData(0);
+      let pos = 0;
+      while (pos < n) {
+        let next = n;
+        if (q.length) { const at = Math.round((q[0].t - t0) * ctx.sampleRate); if (at <= pos) { const m = q.shift(); m.type === 'on' ? eng.noteOn(m.note, m.vel) : eng.noteOff(m.note); continue; } next = Math.min(n, at); }
+        eng.render(L, R, pos, next, s, sc); pos = next;
+      }
+    };
+    sp.connect(master);
+  }
+  buildSounds();
+  pushSettings();
+}
+
+// ---------- the beat: drums, keys and a room, synthesised once when audio starts ----------
+const sounds = {};
+let room = null, keysBus = null;
+function makeBuffer(seconds, channels, fill) {
+  const sr = ctx.sampleRate, b = ctx.createBuffer(channels, Math.floor(sr * seconds), sr);
+  for (let c = 0; c < channels; c++) fill(b.getChannelData(c), sr, c);
+  return b;
+}
+function noiseGen(seed) { let x = seed >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 2147483648 - 1; }; }
+// one-pole and biquad helpers for offline rendering
+function biquad(type, f, q, sr) {
+  const w = 2 * Math.PI * f / sr, c = Math.cos(w), al = Math.sin(w) / (2 * q); let b0, b1, b2; const a0 = 1 + al, a1 = -2 * c, a2 = 1 - al;
+  if (type === 'lp') { b0 = (1 - c) / 2; b1 = 1 - c; b2 = b0; } else if (type === 'hp') { b0 = (1 + c) / 2; b1 = -(1 + c); b2 = b0; } else { b0 = al; b1 = 0; b2 = -al; }
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  return x => { const y = (b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0; x2 = x1; x1 = x; y2 = y1; y1 = y; return y; };
+}
+function buildSounds() {
+  // Kick: a pitch-swept body, a short beater click and gentle saturation
+  sounds.kick = makeBuffer(0.42, 1, (d, sr) => {
+    const rnd = noiseGen(7), click = biquad('bp', 3500, 0.8, sr); let ph = 0;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr; ph += (48 + 210 * Math.exp(-t * 38) + 40 * Math.exp(-t * 300)) / sr;
+      const body = Math.sin(2 * Math.PI * ph) * (t < 0.002 ? t / 0.002 : 1) * Math.exp(-t * 7.5);
+      const beater = click(rnd()) * Math.exp(-t * 260) * 1.6;
+      d[i] = Math.tanh(1.6 * (body + beater)) * 0.85;
+    }
+  });
+  // Clap: four bursts of band-passed noise, then a short body
+  sounds.clap = makeBuffer(0.5, 1, (d, sr) => {
+    const rnd = noiseGen(11), bp = biquad('bp', 1250, 1.1, sr), hp = biquad('hp', 600, 0.7, sr);
+    const bursts = [0, 0.009, 0.019, 0.031];
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr; let env = 0;
+      for (const b of bursts) if (t >= b) env = Math.max(env, Math.exp(-(t - b) * (b === 0.031 ? 16 : 140)));
+      d[i] = hp(bp(rnd())) * env * 2.2;
+    }
+  });
+  // Hats: the TR-808's six square oscillators, band-limited, through a high band-pass
+  const hat = (seconds, decay, seed) => makeBuffer(seconds, 1, (d, sr) => {
+    const freqs = [205.3, 304.4, 369.6, 522.7, 540.0, 800.0], hp1 = biquad('hp', 7000, 0.7, sr), hp2 = biquad('hp', 7000, 0.7, sr), bp = biquad('bp', 10000, 0.9, sr);
+    const phase = freqs.map((_, k) => (k * 0.37 + seed) % 1);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr; let x = 0;
+      for (let k = 0; k < 6; k++) { const f = freqs[k]; for (let h = 1; h * f < sr * 0.45; h += 2) x += Math.sin(2 * Math.PI * (f * h * t + phase[k] * h)) / h; }
+      d[i] = bp(hp2(hp1(x))) * Math.exp(-t / decay) * (t < 0.0006 ? t / 0.0006 : 1) * 0.55;
+    }
+  });
+  sounds.hat = hat(0.09, 0.018, 0.1);
+  sounds.hatSoft = hat(0.07, 0.012, 0.6);
+  sounds.openHat = hat(0.45, 0.11, 0.3);
+  // Keys: an FM bell for the melody and a soft detuned pad for the chords
+  const bell = midi => makeBuffer(2.2, 1, (d, sr) => {
+    const f = 440 * Math.pow(2, (midi - 69) / 12);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr, index = 2.2 * Math.exp(-t * 3.2);
+      d[i] = Math.sin(2 * Math.PI * f * t + index * Math.sin(2 * Math.PI * f * 3.5 * t)) * Math.exp(-t * 2.3) * (t < 0.003 ? t / 0.003 : 1) * 0.32;
+    }
+  });
+  const pad = midis => makeBuffer(STEP * 16 + 0.6, 2, (d, sr, ch) => {
+    const lp = biquad('lp', 1400, 0.6, sr), len = STEP * 16;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr; let x = 0;
+      for (const m of midis) for (const det of [-0.08, 0.08]) { const f = 440 * Math.pow(2, (m - 69 + det + (ch ? 0.03 : -0.03)) / 12); x += 2 * ((f * t + m * 0.13) % 1) - 1; }
+      const env = Math.min(1, t / 0.25) * (t > len ? Math.exp(-(t - len) * 8) : 1);
+      d[i] = lp(x) * env * 0.045;
+    }
+  });
+  sounds.bells = {}; for (const m of [65, 67, 68, 70, 71, 72, 74, 75, 77, 79]) sounds.bells[m] = bell(m);
+  sounds.pads = [pad([60, 63, 67, 70]), pad([56, 60, 63, 67]), pad([53, 56, 60, 63]), pad([55, 59, 62, 65])];   // Cm7, Abmaj7, Fm7, G7
+  // Snare body layered under the clap: a short 185 Hz tone with a noise snap
+  sounds.snare = makeBuffer(0.25, 1, (d, sr) => { const rnd = noiseGen(23), hp = biquad('hp', 2000, 0.7, sr); let ph = 0;
+    for (let i = 0; i < d.length; i++) { const t = i / sr; ph += (185 + 60 * Math.exp(-t * 60)) / sr;
+      d[i] = (Math.sin(2 * Math.PI * ph) * Math.exp(-t * 28) * 0.55 + hp(rnd()) * Math.exp(-t * 22) * 0.35) * (t < 0.001 ? t / 0.001 : 1); } });
+  // Rim: a short woody click for the off-beats
+  sounds.rim = makeBuffer(0.06, 1, (d, sr) => { const bp = biquad('bp', 1700, 6, sr);
+    for (let i = 0; i < d.length; i++) { const t = i / sr; d[i] = Math.tanh(3 * bp(i < 30 ? 1 : 0)) * Math.exp(-t * 90) * 0.9; } });
+  // Room: a short stereo decay for the clap and the keys
+  room = ctx.createConvolver();
+  room.buffer = makeBuffer(1.6, 2, (d, sr, ch) => { const rnd = noiseGen(ch ? 31 : 17), lp = biquad('lp', 5200, 0.6, sr), pre = Math.floor(0.012 * sr);
+    for (let i = 0; i < d.length; i++) d[i] = i < pre ? 0 : lp(rnd()) * Math.exp(-(i - pre) / sr * 3.6) * 0.5; });
+  const roomOut = ctx.createGain(); roomOut.gain.value = 0.35; room.connect(roomOut); roomOut.connect(drumBus);
+  keysBus = ctx.createGain(); keysBus.gain.value = 0.9; keysBus.connect(drumBus);
+}
+function play(buffer, t, gain = 1, opts = {}) {
+  if (!drumsOn) return;
+  const src = ctx.createBufferSource(); src.buffer = buffer;
+  const g = ctx.createGain(); g.gain.value = gain; src.connect(g);
+  if (opts.pan) { const p = ctx.createStereoPanner(); p.pan.value = opts.pan; g.connect(p); p.connect(opts.bus || drumBus); }
+  else g.connect(opts.bus || drumBus);
+  if (opts.room) { const send = ctx.createGain(); send.gain.value = opts.room; g.connect(send); send.connect(room); }
+  if (opts.kick && kickSend) g.connect(kickSend);
+  src.start(t);
+}
+
+// ---------- the pattern: 4 bars of 16ths at 140 BPM, C minor (Cm7, Abmaj7, Fm7, G7) ----------
+const STEP = 60 / 140 / 4, LOOP = 64;
+// [startStep, lengthSteps, note]. Overlapping notes glide in Legato mode.
+const BASS = [[0, 7, 24], [6, 3, 31], [10, 2, 24], [12, 4, 27],
+              [16, 6, 32], [22, 2, 32], [24, 4, 24], [28, 4, 27],
+              [32, 7, 29], [38, 3, 36], [42, 2, 29], [44, 4, 32],
+              [48, 6, 31], [54, 2, 31], [56, 4, 35], [60, 4, 26]];
+const KICK = [0, 10, 16, 26, 32, 42, 48, 58, 62], CLAP = [8, 24, 40, 56];
+// hat accents per 16th; rolls in bars 2 and 4
+const HATS = [1, .45, .8, .5, 1, .45, .8, .55, 1, .45, .8, .5, 1, .5, .85, .6];
+const MELODY = [[0, 79], [3, 75], [6, 72], [8, 74], [11, 75], [14, 70],
+                [16, 79], [19, 75], [22, 72], [24, 74], [26, 72], [28, 68],
+                [32, 77], [35, 75], [38, 72], [40, 72], [43, 68], [46, 65],
+                [48, 74], [51, 71], [54, 67], [56, 71], [58, 74], [60, 77]];
+let playing = false, nextStep = 0, nextTime = 0, timer = null, stepHook = null;
+function schedule() {
+  while (nextTime < ctx.currentTime + 0.15) {
+    const s = nextStep % LOOP, b = s % 16, bar = Math.floor(s / 16), t = nextTime, swing = (s % 2) ? STEP * 0.06 : 0;
+    if (stepHook) stepHook(nextStep);
+    for (const [st, len, note] of BASS) if (st === s) {
+      send({ type: 'on', note, vel: 1, t });
+      send({ type: 'off', note, t: t + len * STEP - 0.004 });
+    }
+    if (KICK.includes(s)) play(sounds.kick, t, s === 62 ? 0.7 : 0.95, { kick: true });
+    if (CLAP.includes(s)) { play(sounds.clap, t, 0.6, { room: 0.5 }); play(sounds.snare, t, 0.45, { room: 0.2 }); }
+    if (s === 62) play(sounds.clap, t, 0.22, { room: 0.6 });   // ghost clap into the loop
+    if (b === 3 || b === 11) play(sounds.rim, t + swing, 0.18, { pan: -0.35, room: 0.15 });
+    // hats: straight 8ths/16ths, a 32nd roll in bar 2, a triplet roll at the end of bar 4
+    if (bar === 1 && b >= 12) { for (let k = 0; k < 2; k++) play(sounds.hatSoft, t + k * STEP / 2 + swing, 0.3 * HATS[b] + 0.1 * k, { pan: 0.15 }); }
+    else if (bar === 3 && b >= 12) { for (let k = 0; k < 3; k++) play(sounds.hatSoft, t + k * STEP / 3, 0.2 + 0.05 * k + (b - 12) * 0.03, { pan: 0.15 }); }
+    else play(sounds.hat, t + swing, 0.36 * HATS[b], { pan: 0.15 });
+    if (b === 6) play(sounds.openHat, t + swing, 0.15, { pan: -0.2 });
+    // keys
+    if (b === 0) play(sounds.pads[bar], t, 0.8, { bus: keysBus, room: 0.25 });
+    for (const [st, m] of MELODY) if (st === s) play(sounds.bells[m], t, 0.45, { bus: keysBus, room: 0.45, pan: st % 4 ? 0.25 : -0.25 });
+    nextStep++; nextTime += STEP;
+  }
+}
+function setPlaying(on) {
+  if (!ctx) return;
+  playing = on;
+  patternBtn.setAttribute('aria-pressed', on); patternBtn.textContent = on ? 'Stop pattern' : 'Play pattern';
+  if (on) { nextStep = 0; nextTime = ctx.currentTime + 0.08; timer = setInterval(schedule, 25); schedule(); }
+  else { clearInterval(timer); timer = null; stepHook = null; send({ type: 'panic' }); }
+}
+
+// ---------- UI: knobs ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim();
+const knobs = {};
+const ARC0 = -0.75 * Math.PI, ARC1 = 0.75 * Math.PI;
+function arcPath(r, a0, a1) {
+  const p = a => [50 + r * Math.sin(a), 50 - r * Math.cos(a)];
+  const [x0, y0] = p(a0), [x1, y1] = p(a1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+function makeKnob(spec) {
+  const el = document.createElement('div');
+  el.className = 'knob' + (spec.hero ? ' hero' : '');
+  el.tabIndex = 0; el.setAttribute('role', 'slider'); el.setAttribute('aria-label', spec.name);
+  const ticks = Array.from({ length: 21 }, (_, i) => { const a = ARC0 + (ARC1 - ARC0) * i / 20, big = i % 5 === 0; const r0 = 45, r1 = big ? 49 : 47.5;
+    return `<line x1="${50 + r0 * Math.sin(a)}" y1="${50 - r0 * Math.cos(a)}" x2="${50 + r1 * Math.sin(a)}" y2="${50 - r1 * Math.cos(a)}" stroke="${big ? '#4a4249' : '#2f2930'}" stroke-width="1.2"/>`; }).join('');
+  const sw = spec.hero ? 6 : 4.5;
+  el.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">${ticks}
+      <path d="${arcPath(40, ARC0, ARC1)}" fill="none" stroke="#2a252d" stroke-width="${sw}" stroke-linecap="round"/>
+      ${spec.hero ? `<path class="glow" fill="none" stroke-width="${sw + 9}" stroke-linecap="round" opacity=".2"/>` : ''}
+      <path class="val" fill="none" stroke-width="${sw}" stroke-linecap="round"/>
+      <circle cx="50" cy="52.5" r="${spec.hero ? 29 : 31}" fill="#000" opacity=".55"/>
+      <circle cx="50" cy="50" r="${spec.hero ? 29 : 31}" fill="url(#kb)" stroke="#3a333b" stroke-width="1"/>
+      <circle cx="50" cy="50" r="${spec.hero ? 24 : 26}" fill="url(#ki)"/>
+      <line class="ptr" stroke-width="${spec.hero ? 3.4 : 2.6}" stroke-linecap="round"/>
+    </svg><output></output><span class="name">${spec.name}</span>`;
+  const color = css(spec.color);
+  el.querySelector('.val').setAttribute('stroke', color);
+  if (spec.hero) el.querySelector('.glow').setAttribute('stroke', color);
+  el.querySelector('.ptr').setAttribute('stroke', spec.hero ? color : css('text'));
+  const k = { el, spec, update() {
+    const v = P[spec.id], p = toNorm(spec, v), a = ARC0 + (ARC1 - ARC0) * p, mid = (ARC0 + ARC1) / 2;
+    const from = spec.bipolar ? mid : ARC0, a0 = Math.min(from, a), a1 = Math.max(from, a);
+    const d = a1 - a0 < 0.001 ? '' : arcPath(40, a0, a1);
+    el.querySelector('.val').setAttribute('d', d); if (spec.hero) el.querySelector('.glow').setAttribute('d', d);
+    const r = spec.hero ? 24 : 26, ptr = el.querySelector('.ptr');
+    ptr.setAttribute('x1', 50 + r * 0.3 * Math.sin(a)); ptr.setAttribute('y1', 50 - r * 0.3 * Math.cos(a));
+    ptr.setAttribute('x2', 50 + r * 0.85 * Math.sin(a)); ptr.setAttribute('y2', 50 - r * 0.85 * Math.cos(a));
+    el.querySelector('output').textContent = spec.fmt(v);
+    el.setAttribute('aria-valuetext', spec.fmt(v));
+  } };
+  let startY = 0, startP = 0;
+  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); startY = e.clientY; startP = toNorm(spec, P[spec.id]); el.focus(); });
+  el.addEventListener('pointermove', e => { if (!el.hasPointerCapture(e.pointerId)) return; const range = e.shiftKey ? 900 : 220; setParam(spec.id, fromNorm(spec, startP + (startY - e.clientY) / range)); });
+  el.addEventListener('dblclick', () => setParam(spec.id, spec.def));
+  el.addEventListener('wheel', e => { e.preventDefault(); setParam(spec.id, fromNorm(spec, toNorm(spec, P[spec.id]) - Math.sign(e.deltaY) * 0.02)); }, { passive: false });
+  el.addEventListener('keydown', e => {
+    const d = { ArrowUp: 0.02, ArrowRight: 0.02, ArrowDown: -0.02, ArrowLeft: -0.02 }[e.key];
+    if (d) { e.preventDefault(); e.stopPropagation(); setParam(spec.id, fromNorm(spec, toNorm(spec, P[spec.id]) + d)); }
+  });
+  knobs[spec.id] = k; k.update();
+  return el;
+}
+function setParam(id, v) {
+  P[id] = v;
+  if (id === 'phone' || id === 'phoneModel') buildPhoneChain();
+  if (knobs[id]) knobs[id].update();
+  refreshToggles();
+  pushSettings();
+}
+
+let advanced = false;
+try { advanced = localStorage.getItem('e808-adv') === '1'; } catch (e) {}
+const knobArea = document.getElementById('knobArea');
+const defs = `<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="kb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#332c33"/><stop offset="1" stop-color="#121014"/></linearGradient>
+  <linearGradient id="ki" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#1b181c"/><stop offset="1" stop-color="#2a252b"/></linearGradient></defs></svg>`;
+function buildKnobs() {
+  const park = document.getElementById('park');
+  for (const id of ['prioritySeg', 'kickModeSeg', 'retrigger']) park.appendChild(document.getElementById(id));
+  knobArea.innerHTML = defs;
+  const panel = document.getElementById('panel'); panel.classList.toggle('adv', advanced);
+  if (!advanced) {
+    const row = document.createElement('div'); row.className = 'knobs';
+    SPECS.filter(s => s.simple !== undefined).sort((a, b) => a.simple - b.simple).forEach(s => row.appendChild(makeKnob(s)));
+    knobArea.appendChild(row);
+  } else {
+    const groups = document.createElement('div'); groups.className = 'groups';
+    const block = (title, color, cls) => { const d = document.createElement('div'); d.style.display = 'grid'; d.style.gap = '6px';
+      d.innerHTML = `<div class="label group-title" style="color:var(--${color})">${title}</div>`;
+      const row = document.createElement('div'); row.className = 'knobs ' + cls; SPECS.filter(s => s.group === cls).forEach(s => row.appendChild(makeKnob(s))); d.appendChild(row); return d; };
+    const top = document.createElement('div'); top.className = 'adv-row';
+    top.appendChild(block('Body', 'magma', 'body')); top.appendChild(block('Envelope', 'text', 'env'));
+    groups.appendChild(top); groups.appendChild(block('Effects', 'ember', 'fx'));
+    const third = document.createElement('div'); third.className = 'adv-row two';
+    const playBlock = block('Playing', 'text', 'play'), kickBlock = block('Kick lock', 'glass', 'kick');
+    const pe = document.createElement('div'); pe.className = 'extras';
+    pe.innerHTML = '<span class="label">Note priority</span>'; const pr = document.getElementById('prioritySeg'); pe.appendChild(pr); pe.appendChild(document.getElementById('retrigger'));
+    playBlock.querySelector('.knobs').style.display = 'inline-grid'; playBlock.appendChild(pe);
+    const ke = document.createElement('div'); ke.className = 'extras';
+    ke.innerHTML = '<span class="label">Mode</span>'; ke.appendChild(document.getElementById('kickModeSeg'));
+    const st = document.createElement('span'); st.className = 'kick-status'; st.textContent = 'In the Lab, the pattern\'s kick is routed to Kick Lock. Toggle it while the pattern plays.'; ke.appendChild(st);
+    kickBlock.appendChild(ke);
+    third.appendChild(playBlock); third.appendChild(kickBlock); groups.appendChild(third);
+    knobArea.appendChild(groups);
+  }
+  advBtn.setAttribute('aria-pressed', advanced); advBtn.textContent = advanced ? 'Hide advanced' : 'Show advanced';
+}
+
+// segmented switches and pills
+const segs = {};
+for (const id of ['driveMode', 'glideMode', 'priority', 'kickMode']) {
+  const host = document.getElementById(id === 'priority' ? 'prioritySeg' : id === 'kickMode' ? 'kickModeSeg' : id);
+  segs[id] = CHOICES[id].labels.map((label, i) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => setParam(id, i); host.appendChild(b); return b; });
+}
+const advBtn = document.getElementById('advanced'), clipBtn = document.getElementById('clip'), phoneBtn = document.getElementById('phone');
+const kickBtn = document.getElementById('kickLock'), retrigBtn = document.getElementById('retrigger'), phoneModelSel = document.getElementById('phoneModel');
+function refreshToggles() {
+  for (const id in segs) segs[id].forEach((b, i) => b.setAttribute('aria-pressed', P[id] === i));
+  clipBtn.setAttribute('aria-pressed', P.clip > 0.5); clipBtn.textContent = P.clip > 0.5 ? 'Clip on' : 'Clip off';
+  phoneBtn.setAttribute('aria-pressed', P.phone > 0.5); phoneBtn.textContent = P.phone > 0.5 ? 'Phone check on' : 'Phone check';
+  kickBtn.setAttribute('aria-pressed', P.kickLock > 0.5); kickBtn.textContent = P.kickLock > 0.5 ? 'Kick lock on' : 'Kick lock';
+  retrigBtn.setAttribute('aria-pressed', P.retrigger > 0.5); retrigBtn.textContent = P.retrigger > 0.5 ? 'Retrigger on' : 'Retrigger';
+  phoneModelSel.value = String(P.phoneModel);
+  document.getElementById('coneView').classList.toggle('phone-on', P.phone > 0.5);
+}
+advBtn.onclick = () => { advanced = !advanced; try { localStorage.setItem('e808-adv', advanced ? '1' : '0'); } catch (e) {} buildKnobs(); };
+clipBtn.onclick = () => setParam('clip', P.clip > 0.5 ? 0 : 1);
+phoneBtn.onclick = () => setParam('phone', P.phone > 0.5 ? 0 : 1);
+kickBtn.onclick = () => setParam('kickLock', P.kickLock > 0.5 ? 0 : 1);
+retrigBtn.onclick = () => setParam('retrigger', P.retrigger > 0.5 ? 0 : 1);
+phoneModelSel.onchange = () => { setParam('phoneModel', +phoneModelSel.value); if (P.phone < 0.5) setParam('phone', 1); };
+
+// presets
+const presetSel = document.getElementById('preset');
+{
+  const groups = {};
+  PRESETS.forEach(([name, cat], i) => {
+    if (!groups[cat]) { groups[cat] = document.createElement('optgroup'); groups[cat].label = cat; presetSel.appendChild(groups[cat]); }
+    const o = document.createElement('option'); o.value = i; o.textContent = name; groups[cat].appendChild(o);
+  });
+}
+function loadPreset(i) {
+  const keep = { phone: P.phone, phoneModel: P.phoneModel, kickLock: P.kickLock, kickMode: P.kickMode, duck: P.duck };
+  for (const s of SPECS) P[s.id] = s.def;
+  for (const k in CHOICES) P[k] = CHOICES[k].def;
+  P.clip = 1; P.retrigger = 0; P.bendRange = BEND_DEFAULT; Object.assign(P, PRESETS[i][2]); Object.assign(P, keep);
+  for (const id in knobs) knobs[id].update();
+  refreshToggles(); pushSettings();
+  if (typeof presetNote !== 'undefined' && presetNote) presetNote.textContent = PRESETS[i][3];
+}
+presetSel.onchange = () => loadPreset(+presetSel.value);
+const presetNote = document.getElementById('presetNote');
+
+// ---------- keyboard ----------
+const kbd = document.getElementById('kbd');
+const LOW = 24, HIGH = 59;   // C1 - B3
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const noteName = n => NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
+const keyEls = {};
+const whites = []; for (let n = LOW; n <= HIGH; n++) if (![1, 3, 6, 8, 10].includes(n % 12)) whites.push(n);
+whites.forEach(n => { const w = document.createElement('div'); w.className = 'w'; w.dataset.note = n; if (n % 12 === 0) w.innerHTML = `<span>${noteName(n)}</span>`; kbd.appendChild(w); keyEls[n] = w; });
+for (let n = LOW; n <= HIGH; n++) if ([1, 3, 6, 8, 10].includes(n % 12)) {
+  const idx = whites.indexOf(n - 1), b = document.createElement('div'); b.className = 'b'; b.dataset.note = n;
+  b.style.left = `calc(${(idx + 1) / whites.length * 100}% - ${100 / whites.length * 0.32}%)`; b.style.width = `${100 / whites.length * 0.64}%`;
+  kbd.appendChild(b); keyEls[n] = b;
+}
+const down = new Set();
+function noteOn(n) { if (!ctx || down.has(n)) return; down.add(n); keyEls[n] && keyEls[n].classList.add('on'); send({ type: 'on', note: n, vel: 0.95, t: 0 }); }
+function noteOff(n) { if (!down.has(n)) return; down.delete(n); keyEls[n] && keyEls[n].classList.remove('on'); send({ type: 'off', note: n, t: 0 }); }
+const pointerNote = {};
+kbd.addEventListener('pointerdown', e => { const k = e.target.closest('[data-note]'); if (!k) return; if (!ctx) { flashStart(); return; } kbd.setPointerCapture(e.pointerId); pointerNote[e.pointerId] = +k.dataset.note; noteOn(+k.dataset.note); });
+kbd.addEventListener('pointermove', e => { if (!(e.pointerId in pointerNote)) return; const el = document.elementFromPoint(e.clientX, e.clientY); const k = el && el.closest('[data-note]'); if (!k) return; const n = +k.dataset.note;
+  if (n !== pointerNote[e.pointerId]) { const old = pointerNote[e.pointerId]; pointerNote[e.pointerId] = n; noteOn(n); noteOff(old); } });   // sliding across keys overlaps: glide
+const endPointer = e => { if (e.pointerId in pointerNote) { noteOff(pointerNote[e.pointerId]); delete pointerNote[e.pointerId]; } };
+kbd.addEventListener('pointerup', endPointer); kbd.addEventListener('pointercancel', endPointer);
+const KEYMAP = 'awsedftgyhujkolp;';
+let octave = 1;
+const keyNote = {};
+function labelKeys() {
+  kbd.querySelectorAll('.key-hint').forEach(e => e.remove());
+  const base = 12 * (octave + 1);
+  [...KEYMAP].forEach((c, i) => { const el = keyEls[base + i]; if (el) { const s = document.createElement('span'); s.className = 'key-hint'; s.textContent = c; el.appendChild(s); } });
+  document.getElementById('oct').textContent = 'now C' + octave;
+}
+window.addEventListener('keydown', e => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || e.target.tagName === 'SELECT') return;
+  const c = e.key.toLowerCase();
+  if (c === 'z' || c === 'x') { octave = Math.min(3, Math.max(1, octave + (c === 'x' ? 1 : -1))); labelKeys(); return; }
+  const i = KEYMAP.indexOf(c); if (i < 0) return;
+  if (!ctx) { flashStart(); return; }
+  const n = 12 * (octave + 1) + i; keyNote[c] = n; noteOn(n); e.preventDefault();
+});
+window.addEventListener('keyup', e => { const c = e.key.toLowerCase(); if (c in keyNote) { noteOff(keyNote[c]); delete keyNote[c]; } });
+window.addEventListener('blur', () => { for (const n of [...down]) noteOff(n); });
+
+// ---------- views ----------
+const coneC = document.getElementById('cone'), tailC = document.getElementById('tail');
+const HIST = 240; const amp = new Float32Array(HIST), notes = new Float32Array(HIST).fill(-1); let head = 0;
+let exc = 0, glow = 0, harmS = 0, peakHold = 0, grS = 0, lastFrameTime = 0;
+function fit(c) { const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (c.width !== Math.round(r.width * d) || c.height !== Math.round(r.height * d)) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); } const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return [g, r.width, r.height]; }
+function drawCone() {
+  const [g, w, h] = fit(coneC);
+  g.clearRect(0, 0, w, h);
+  g.font = '700 15px ' + css('display'); g.fillStyle = css('text'); g.fillText('SUB', 16, 26);
+  if (P.phone > 0.5) { g.font = '700 13px ' + css('display'); g.fillStyle = css('glass'); g.textAlign = 'right'; g.fillText('PHONE CHECK ON', w - 16, 26); g.textAlign = 'left'; }
+  const cx = w / 2, cy = 34 + (h - 34 - 70) / 2, R = Math.min(w, h - 104) * 0.46, e = Math.min(1, exc * 1.4), gl = Math.min(1, glow);
+  let grad = g.createRadialGradient(cx, cy, 0, cx, cy, R * 1.25); grad.addColorStop(0, `rgba(255,77,46,${0.28 * gl})`); grad.addColorStop(1, 'rgba(255,77,46,0)');
+  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, R * 1.25, 0, 7); g.fill();
+  g.fillStyle = '#1d1a1f'; g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fill(); g.strokeStyle = '#3a333b'; g.lineWidth = 1.2; g.stroke();
+  for (let i = 0; i < 8; i++) { const a = i / 8 * 2 * Math.PI + 0.39; g.fillStyle = '#3a333a'; g.beginPath(); g.arc(cx + Math.cos(a) * R * 0.94, cy + Math.sin(a) * R * 0.94, 2.5, 0, 7); g.fill(); }
+  const rs = R * 0.86; grad = g.createLinearGradient(cx - rs * 0.4, cy - rs * 0.6, cx + rs * 0.5, cy + rs * 0.7); grad.addColorStop(0, '#3b343a'); grad.addColorStop(1, '#0d0c0e');
+  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, rs, 0, 7); g.fill();
+  if (harmS > 0.01) { g.strokeStyle = `rgba(111,227,209,${Math.min(0.9, harmS)})`; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, R * 1.04, 0, 7); g.stroke(); }
+  const rc = R * 0.74 * (1 + 0.05 * e); grad = g.createRadialGradient(cx, cy, 0, cx, cy, rc); grad.addColorStop(0, '#2b262b'); grad.addColorStop(1, '#17141a');
+  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, rc, 0, 7); g.fill();
+  for (let i = 1; i <= 5; i++) { g.strokeStyle = `rgba(255,255,255,${0.03 + 0.01 * i})`; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, rc * (0.42 + 0.11 * i), 0, 7); g.stroke(); }
+  const rd = R * 0.3 * (1 + 0.12 * e);
+  grad = g.createRadialGradient(cx - rd * 0.35, cy - rd * 0.4, 0, cx, cy, rd * 1.1);
+  grad.addColorStop(0, `rgba(${Math.round(90 + 165 * gl)},${Math.round(60 + 17 * gl)},${Math.round(60 - 14 * gl)},1)`); grad.addColorStop(1, '#120f12');
+  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, rd, 0, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(cx - rd * 0.3, cy - rd * 0.45, rd * 0.25, rd * 0.15, 0, 0, 7); g.fill();
+  const playing = frame && frame.hz > 0 && frame.note >= 0 && performance.now() - lastFrameTime < 200;
+  const by = h - 36;
+  if (playing) {
+    const n = frame.note, cents = Math.round((n - Math.round(n)) * 100);
+    g.font = '700 34px ' + css('display'); g.fillStyle = css('text'); g.textAlign = 'right'; g.fillText(noteName(Math.round(n)), cx - 4, by + 12);
+    g.textAlign = 'left'; g.font = '600 15px ' + css('display'); g.fillStyle = css('muted'); g.fillText(frame.hz.toFixed(1) + ' Hz', cx + 10, by - 2);
+    g.fillStyle = Math.abs(cents) <= 5 ? css('glass') : css('ember'); g.fillText((cents >= 0 ? '+' : '') + cents + ' cents', cx + 10, by + 15);
+  } else { g.font = '600 15px ' + css('display'); g.fillStyle = css('dim'); g.textAlign = 'center'; g.fillText(ctx ? 'Play a note' : 'Start audio to play', cx, by + 6); g.textAlign = 'left'; }
+}
+function drawTail() {
+  const [g, w, h] = fit(tailC);
+  g.clearRect(0, 0, w, h);
+  g.font = '700 15px ' + css('display'); g.fillStyle = css('text'); g.fillText('TAIL', 16, 26);
+  g.font = '700 13px ' + css('display');
+  let lx = 72; for (const [c, t] of [['magma', 'LEVEL'], ['text', 'PITCH']]) { g.fillStyle = css(c); g.fillRect(lx, 18, 14, 4); g.fillStyle = css('muted'); g.fillText(t, lx + 20, 25); lx += 80; }
+  const pdb = 20 * Math.log10(Math.max(peakHold, 1e-3));
+  g.textAlign = 'right'; g.fillStyle = pdb > -0.5 ? css('magma') : css('muted');
+  if (w > 420) { g.fillText('PEAK ' + pdb.toFixed(1) + ' dB', w - 130, 25); g.fillStyle = css('muted'); g.fillText('GLUE -' + grS.toFixed(1) + ' dB', w - 16, 25); }
+  g.textAlign = 'left';
+  const x0 = 52, x1 = w - 16, y0 = 40, y1 = h - 16, pw = x1 - x0, ph = y1 - y0;
+  g.fillStyle = '#0b0a0d'; g.fillRect(x0, y0, pw, ph);
+  const at = (a, i) => a[(head + 1 + i) % HIST], xAt = i => x0 + pw * i / (HIST - 1);
+  let lo = 1e3, hi = -1e3; for (let i = 0; i < HIST; i++) { const v = at(notes, i); if (v >= 0) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  if (hi < lo) { lo = 24; hi = 48; }
+  const mid = (lo + hi) / 2, span = Math.max(12, hi - lo + 4); lo = mid - span / 2; hi = mid + span / 2;
+  const yN = v => y1 - (v - lo) / (hi - lo) * ph;
+  g.font = '600 11.5px ' + css('display');
+  for (let n = Math.ceil(lo); n <= hi; n++) {
+    if (span > 14 && n % 12 !== 0 && n % 12 !== 7) continue;
+    const y = Math.round(yN(n)) + 0.5; g.strokeStyle = 'rgba(42,37,45,.8)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+    g.fillStyle = css('muted'); g.textAlign = 'right'; g.fillText(noteName(n), x0 - 6, y + 4); g.textAlign = 'left';
+  }
+  const cy = (y0 + y1) / 2, half = ph * 0.48;
+  g.beginPath(); g.moveTo(xAt(0), cy);
+  for (let i = 0; i < HIST; i++) g.lineTo(xAt(i), cy - half * Math.min(1, at(amp, i)));
+  for (let i = HIST - 1; i >= 0; i--) g.lineTo(xAt(i), cy + half * Math.min(1, at(amp, i)));
+  g.closePath(); const grad = g.createLinearGradient(0, y0, 0, cy); grad.addColorStop(0, 'rgba(255,77,46,.55)'); grad.addColorStop(1, 'rgba(255,77,46,.12)'); g.fillStyle = grad; g.fill();
+  g.beginPath(); let drawing = false;
+  for (let i = 0; i < HIST; i++) { const v = at(notes, i); if (v < 0) { drawing = false; continue; } const x = xAt(i), y = yN(v); drawing ? g.lineTo(x, y) : g.moveTo(x, y); drawing = true; }
+  g.lineJoin = g.lineCap = 'round';
+  g.strokeStyle = 'rgba(239,231,218,.25)'; g.lineWidth = 5; g.stroke(); g.strokeStyle = css('text'); g.lineWidth = 1.8; g.stroke();
+  g.fillStyle = css('dim'); g.font = '500 11.5px ' + css('display'); g.fillText('4 s ago', x0 + 4, y1 - 4); g.textAlign = 'right'; g.fillText('now', x1 - 4, y1 - 4); g.textAlign = 'left';
+}
+let seenFrame = null;
+function tick() {
+  let f = frame;
+  if (f && f !== seenFrame) { seenFrame = f; lastFrameTime = performance.now(); }
+  const live = f && performance.now() - lastFrameTime < 200;
+  if (!live) f = { peakL: 0, peakR: 0, lowPeak: 0, harmonics: 0, gr: 0, env: 0, note: -1 };
+  head = (head + 1) % HIST; amp[head] = Math.max(f.peakL, f.peakR); notes[head] = f.env > 0.002 ? f.note : -1;
+  exc += 0.35 * (f.lowPeak - exc); glow += 0.25 * (f.env - glow); harmS += 0.2 * (f.harmonics * 3 - harmS);
+  peakHold = Math.max(peakHold * 0.97, Math.max(f.peakL, f.peakR)); grS += 0.2 * (f.gr - grS);
+  drawCone(); drawTail();
+  requestAnimationFrame(tick);
+}
+
+// ---------- transport and experiments ----------
+const startBtn = document.getElementById('start'), patternBtn = document.getElementById('pattern'), drumsBtn = document.getElementById('drums');
+function flashStart() { startBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 300 }); }
+startBtn.onclick = async () => {
+  if (!ctx) { startBtn.textContent = 'Starting…'; await startAudio(); startBtn.textContent = 'Audio on'; startBtn.setAttribute('aria-pressed', 'true'); patternBtn.disabled = false; }
+  else if (ctx.state === 'running') { await ctx.suspend(); startBtn.textContent = 'Audio paused'; }
+  else { await ctx.resume(); startBtn.textContent = 'Audio on'; }
+};
+patternBtn.onclick = () => setPlaying(!playing);
+drumsBtn.onclick = () => { drumsOn = !drumsOn; drumsBtn.setAttribute('aria-pressed', drumsOn); drumsBtn.textContent = drumsOn ? 'Beat on' : 'Beat off'; };
+
+async function ensurePlaying() { if (!ctx) { startBtn.textContent = 'Starting…'; await startAudio(); startBtn.textContent = 'Audio on'; startBtn.setAttribute('aria-pressed', 'true'); patternBtn.disabled = false; } if (!playing) setPlaying(true); }
+const TRIES = {
+  translate: () => { loadPreset(5); presetSel.value = 5; setParam('translate', 0); setParam('phone', 1);
+    stepHook = s => { if (s === 64) setParam('translate', 70); if (s === 128) { setParam('phone', 0); stepHook = null; } }; },
+  drive: () => { loadPreset(0); presetSel.value = 0; setParam('drive', 18);
+    stepHook = s => { const m = Math.floor(s / 32); if (s % 32 === 0) { if (m < 4) setParam('driveMode', m); else { setParam('driveMode', 0); stepHook = null; } } }; },
+  glide: () => { loadPreset(5); presetSel.value = 5; setParam('glideMode', 0); setParam('glide', 160);
+    stepHook = s => { if (s === 64) setParam('glideMode', 1); if (s === 128) { setParam('glideMode', 0); stepHook = null; } }; },
+  kick: () => { loadPreset(6); presetSel.value = 6; setParam('kickLock', 0); drumsOn = true;
+    stepHook = s => { if (s === 64) setParam('kickLock', 1); if (s === 128) stepHook = null; }; },
+  split: () => { loadPreset(0); presetSel.value = 0; setParam('drive', 30); setParam('driveMode', 2); setParam('split', 50);
+    stepHook = s => { if (s === 64) setParam('split', 110); if (s === 128) stepHook = null; }; },
+  punch: () => { loadPreset(0); presetSel.value = 0; setParam('punch', 0);
+    stepHook = s => { if (s === 64) { setParam('punch', 24); setParam('punchTime', 25); setParam('click', 45); } if (s === 128) stepHook = null; }; },
+};
+document.querySelectorAll('[data-try]').forEach(b => b.onclick = async () => { if (playing) setPlaying(false); TRIES[b.dataset.try](); await ensurePlaying(); });
+
+buildKnobs(); refreshToggles(); labelKeys(); presetSel.value = 0; presetNote.textContent = PRESETS[0][3];
+requestAnimationFrame(tick);
+</script>

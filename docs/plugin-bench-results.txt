@@ -1,0 +1,70 @@
+[PASS] output finite
+[PASS] MIDI note C1 makes sound (energy 2255.4)
+[PASS] note off decays to silence
+[PASS] Clip holds peaks at 0 dBFS (peak 0.6997)
+[PASS] preset loads clean: Init 808
+[PASS] preset loads clean: Clean Sub
+[PASS] preset loads clean: Pure Sine
+[PASS] preset loads clean: Soft Boom
+[PASS] preset loads clean: R&B Sub
+[PASS] preset loads clean: Long Trap 808
+[PASS] preset loads clean: Trap Classic
+[PASS] preset loads clean: Club Trap
+[PASS] preset loads clean: Glide Machine
+[PASS] preset loads clean: Deep Tail
+[PASS] preset loads clean: Southern Boom
+[PASS] preset loads clean: Velvet Trap
+[PASS] preset loads clean: Drill Slide
+[PASS] preset loads clean: UK Drill
+[PASS] preset loads clean: NY Drill
+[PASS] preset loads clean: Low Note Drill
+[PASS] preset loads clean: Slide Grit
+[PASS] preset loads clean: Distorted 808
+[PASS] preset loads clean: Hard Clip 808
+[PASS] preset loads clean: Fold Growl
+[PASS] preset loads clean: Rage Fuzz
+[PASS] preset loads clean: Tube Warmth
+[PASS] preset loads clean: Tape Saturated
+[PASS] preset loads clean: Screamer
+[PASS] preset loads clean: Punchy Short
+[PASS] preset loads clean: Knock
+[PASS] preset loads clean: Bounce
+[PASS] preset loads clean: Detroit Tap
+[PASS] preset loads clean: Kick 808
+[PASS] preset loads clean: Melodic Glide
+[PASS] preset loads clean: Bell Sub
+[PASS] preset loads clean: Plucked Bass
+[PASS] preset loads clean: Log Drum
+[PASS] preset loads clean: Log Drum Deep
+[PASS] preset loads clean: Log Drum Bright
+[PASS] preset loads clean: Amapiano Slide
+[PASS] preset loads clean: Wide Character
+[PASS] preset loads clean: Stereo Grit
+[PASS] preset loads clean: Wide Fold
+[PASS] preset loads clean: Phone Ready
+[PASS] preset loads clean: Heard Everywhere
+[PASS] all presets play
+[PASS] state round trip keeps values, preset and the modified mark
+[PASS] A/B slots hold separate settings
+[PASS] loading a preset leaves Phone Check alone
+[PASS] Kick sidechain bus can be enabled (stereo)
+[PASS] latency 23 samples with Kick Lock off
+[PASS] Exact mode reports 263 samples (5 ms lookahead + clipper)
+[PASS] processor sees the kick on the sidechain
+[PASS] save a user preset
+[PASS] user preset is listed with its category
+[PASS] user preset loads back exactly
+[PASS] favourite star sticks
+[PASS] delete a user preset
+[PASS] deleted preset is gone
+[PASS] 41 factory presets
+[PASS] undo restores Glue
+[PASS] factory presets loudness-matched: -13.7 to -13.1 LUFS (gated)
+[PASS] every non-Clean preset is within 19.5 dB of its full-range loudness on Phone Check (41/41)
+[PASS] snapshot simple.png
+[PASS] snapshot advanced.png
+[PASS] snapshot simple-small.png
+[PASS] snapshot browser.png
+[PASS] full repaint 5.48 ms
+
+0 failure(s)

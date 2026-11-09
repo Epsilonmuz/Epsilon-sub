@@ -1,0 +1,30 @@
+[PASS] tuning 44100 Hz note 24: 32.703 Hz, +0.002 cents
+[PASS] tuning 44100 Hz note 36: 65.406 Hz, +0.000 cents
+[PASS] tuning 44100 Hz note 48: 130.813 Hz, -0.000 cents
+[PASS] tuning 48000 Hz note 24: 32.703 Hz, +0.001 cents
+[PASS] tuning 48000 Hz note 36: 65.406 Hz, +0.000 cents
+[PASS] tuning 48000 Hz note 48: 130.813 Hz, +0.000 cents
+[PASS] tuning 96000 Hz note 24: 32.703 Hz, -0.000 cents
+[PASS] tuning 96000 Hz note 36: 65.406 Hz, +0.000 cents
+[PASS] tuning 96000 Hz note 48: 130.813 Hz, -0.000 cents
+[PASS] punch: starts at 92.9 Hz, settles at 65.41 Hz
+[PASS] legato glide C2->C3 in 100 ms: 109.3 Hz midway, 130.81 Hz after
+[PASS] releasing the top note glides back to the held one: 65.41 Hz
+[PASS] retrigger and 5 ms release stay smooth: largest step 0.0049 vs steady-state 0.0050
+[PASS] aliasing, all drive modes: worst -78.2 dB in C1-C3 at +36 dB, -83.2 dB at C4 +24 dB
+[PASS] Translate on a 44 Hz 808 adds 76.3 dB in 200 Hz - 2 kHz
+[PASS] Width at 100%: mono sum off by 3.6e-07, sub in the sides -31.3 dB below the sub
+[PASS] silent before the first note, decays to 1.6e-37 after release, all finite
+[PASS] Phone Check takes the 44 Hz fundamental down -66.3 dB
+[PASS] Clip holds peaks at 0.924 with +12 dB output and +20 dB drive
+[PASS] clipper aliasing (2x + ADAA): worst -92.2 dB in C1-C3, -77.9 dB at C4, +36 dB drive and +6 dB into Clip
+[PASS] Split at 120 Hz: -0.00 dB change with no drive; under +30 dB Hard drive the 44 Hz sub is +0.1 dB vs clean (+4.2 dB without Split), harmonics +91 dB
+[PASS] note priority: Low stays on 65.41 Hz, High stays on 98.00 Hz, Last moves to 98.00 Hz
+[PASS] Retrigger: first 20 ms of a slide average 121 Hz with a fresh punch vs 78 Hz without
+[PASS] Analog at 100%: tail droops -31.9 cents
+[PASS] velocity to Punch: soft hit starts at 68.9 Hz, hard hit at 92.9 Hz
+[PASS] Kick Lock: 808 vs kick correlation -0.97 off, 0.95 Exact (240-sample lookahead), 0.91 Live; 808 level in the 10 ms after the kick -9.8 dB
+[PASS] Phone Check at 44 Hz: Phone -66.3 dB, Laptop -45.7 dB, Earbuds -3.3 dB, Car +4.7 dB
+   CPU: 6.62% of one core at 48 kHz, all effects on
+
+0 failure(s)

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="B808Ep" name="Epsilon 808" projectType="audioplug" version="1.0.1"
+              companyName="Epsilon Sounds" bundleIdentifier="com.epsilonsounds.e808"
+              pluginName="Epsilon 808" pluginDesc="808 and sub bass instrument"
+              pluginManufacturer="Epsilon Sounds" pluginManufacturerCode="EpsS"
+              pluginCode="E808" pluginFormats="buildVST3,buildAU"
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn,pluginEditorRequiresKeys"
+              pluginVST3Category="Instrument|Synth" pluginAUMainType="'aumu'"
+              cppLanguageStandard="17" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="B8m0Ma" name="Epsilon 808">
+    <GROUP id="B8grSr" name="Source">
+      <FILE id="B8En01" name="Boom808Engine.cpp" compile="1" resource="0" file="Source/Boom808Engine.cpp"/>
+      <FILE id="B8En02" name="Boom808Engine.h" compile="0" resource="0" file="Source/Boom808Engine.h"/>
+      <FILE id="B8Ui01" name="BoomUI.h" compile="0" resource="0" file="Source/BoomUI.h"/>
+      <FILE id="B8Ed01" name="PluginEditor.cpp" compile="1" resource="0" file="Source/PluginEditor.cpp"/>
+      <FILE id="B8Ed02" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="B8Pr01" name="PluginProcessor.cpp" compile="1" resource="0" file="Source/PluginProcessor.cpp"/>
+      <FILE id="B8Pr02" name="PluginProcessor.h" compile="0" resource="0" file="Source/PluginProcessor.h"/>
+    </GROUP>
+    <GROUP id="B8grRs" name="Resources">
+      <FILE id="B8Fn01" name="BarlowSemiCondensed-Medium.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Medium.ttf"/>
+      <FILE id="B8Fn02" name="BarlowSemiCondensed-SemiBold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-SemiBold.ttf"/>
+      <FILE id="B8Fn03" name="BarlowSemiCondensed-Bold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Bold.ttf"/>
+      <FILE id="B8Fn04" name="Barlow-OFL.txt" compile="0" resource="0" file="Resources/Barlow-OFL.txt"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="3" targetName="Epsilon 808"
+                       osxArchitecture="Native" macOSDeploymentTarget="12.0" enablePluginBinaryCopyStep="1"
+                       vst3BinaryLocation="$(HOME)/Library/Audio/Plug-Ins/VST3" auBinaryLocation="$(HOME)/Library/Audio/Plug-Ins/Components"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Epsilon 808"
+                       osxArchitecture="64BitUniversal" macOSDeploymentTarget="12.0"
+                       enablePluginBinaryCopyStep="1" vst3BinaryLocation="$(HOME)/Library/Audio/Plug-Ins/VST3"
+                       auBinaryLocation="$(HOME)/Library/Audio/Plug-Ins/Components"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="3" targetName="Epsilon 808"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Epsilon 808"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="3" targetName="Epsilon 808"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Epsilon 808"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="JUCE/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_WEB_BROWSER="0" JUCE_USE_CURL="0" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+</JUCERPROJECT>
