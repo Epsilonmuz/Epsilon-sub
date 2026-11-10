@@ -25,6 +25,7 @@ juce_add_plugin(Epsilon808
     AU_MAIN_TYPE kAudioUnitType_MusicDevice
     FORMATS ${e808_formats}
     PRODUCT_NAME "Epsilon 808"
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/Resources/AppIcon.png"
     DESCRIPTION "808 and sub bass instrument"
 )
 juce_generate_juce_header(Epsilon808)
@@ -32,9 +33,8 @@ juce_generate_juce_header(Epsilon808)
 # the Projucer package has the full set. The plugin runs with any subset: a missing layer is skipped.
 file(GLOB e808_layer_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Layers/*.flac)
 juce_add_binary_data(BoomAssets SOURCES
-    Resources/BarlowSemiCondensed-Medium.ttf
-    Resources/BarlowSemiCondensed-SemiBold.ttf
-    Resources/BarlowSemiCondensed-Bold.ttf
+    Resources/EpsilonDial-Regular.ttf
+    Resources/EpsilonDial-Bold.ttf
     ${e808_layer_files}
 )
 set_target_properties(BoomAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)

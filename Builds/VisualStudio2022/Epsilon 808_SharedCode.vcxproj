@@ -4001,6 +4001,10 @@
     <ClInclude Include="..\..\Source\BoomUI.h"/>
     <ClInclude Include="..\..\Source\PluginEditor.h"/>
     <ClInclude Include="..\..\Source\PluginProcessor.h"/>
+    <ClInclude Include="..\..\Source\LayerLibrary.h"/>
+    <ClInclude Include="..\..\Source\LayerBank.h"/>
+    <ClInclude Include="..\..\Source\WaveAnalysis.h"/>
+    <ClInclude Include="..\..\Source\HybridUI.h"/>
     <ClInclude Include="..\..\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>
     <ClInclude Include="..\..\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.h"/>
     <ClInclude Include="..\..\JUCE\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h"/>
@@ -5563,10 +5567,10 @@
     <ClInclude Include="..\..\JuceLibraryCode\JucePluginDefines.h"/>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Resources\BarlowSemiCondensed-Medium.ttf"/>
-    <None Include="..\..\Resources\BarlowSemiCondensed-SemiBold.ttf"/>
-    <None Include="..\..\Resources\BarlowSemiCondensed-Bold.ttf"/>
-    <None Include="..\..\Resources\Barlow-OFL.txt"/>
+    <None Include="..\..\Resources\AppIcon.png"/>
+    <None Include="..\..\Resources\EpsilonDial-Regular.ttf"/>
+    <None Include="..\..\Resources\EpsilonDial-Bold.ttf"/>
+    <None Include="..\..\Resources\EpsilonDial-LICENSE.txt"/>
     <None Include="..\..\JUCE\modules\juce_audio_devices\native\asio\LICENSE.txt"/>
     <None Include="..\..\JUCE\modules\juce_audio_devices\native\oboe\src\common\README.md"/>
     <None Include="..\..\JUCE\modules\juce_audio_devices\native\oboe\src\flowgraph\resampler\README.md"/>
@@ -5609,6 +5613,7 @@
     <None Include="..\..\JUCE\modules\juce_gui_extra\native\typescript\webview-interop\LICENSE-JUCE.md"/>
     <None Include="..\..\JUCE\modules\juce_gui_extra\native\typescript\webview-interop\LICENSE.md"/>
     <None Include="..\..\JUCE\modules\juce_gui_extra\native\typescript\webview-interop\README.md"/>
+    <None Include=".\icon.ico"/>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
 </Project>

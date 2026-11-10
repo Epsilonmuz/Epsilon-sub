@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="B808Ep" name="Epsilon 808" projectType="audioplug" version="1.1.0"
+<JUCERPROJECT id="B808Ep" bigIcon="EpsIcn" name="Epsilon 808" projectType="audioplug" version="1.1.0"
               companyName="Epsilon Sounds" bundleIdentifier="com.epsilonsounds.e808"
               pluginName="Epsilon 808" pluginDesc="808 and sub bass instrument"
               pluginManufacturer="Epsilon Sounds" pluginManufacturerCode="EpsS"
@@ -24,10 +24,10 @@
       <FILE id="B8HyUi" name="HybridUI.h" compile="0" resource="0" file="Source/HybridUI.h"/>
     </GROUP>
     <GROUP id="B8grRs" name="Resources">
-      <FILE id="B8Fn01" name="BarlowSemiCondensed-Medium.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Medium.ttf"/>
-      <FILE id="B8Fn02" name="BarlowSemiCondensed-SemiBold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-SemiBold.ttf"/>
-      <FILE id="B8Fn03" name="BarlowSemiCondensed-Bold.ttf" compile="0" resource="1" file="Resources/BarlowSemiCondensed-Bold.ttf"/>
-      <FILE id="B8Fn04" name="Barlow-OFL.txt" compile="0" resource="0" file="Resources/Barlow-OFL.txt"/>
+      <FILE id="EpsIcn" name="AppIcon.png" compile="0" resource="0" file="Resources/AppIcon.png"/>
+      <FILE id="B8Fn01" name="EpsilonDial-Regular.ttf" compile="0" resource="1" file="Resources/EpsilonDial-Regular.ttf"/>
+      <FILE id="B8Fn03" name="EpsilonDial-Bold.ttf" compile="0" resource="1" file="Resources/EpsilonDial-Bold.ttf"/>
+      <FILE id="B8Fn04" name="EpsilonDial-LICENSE.txt" compile="0" resource="0" file="Resources/EpsilonDial-LICENSE.txt"/>
       <GROUP id="B8grLy" name="Layers">
         <FILE id="B8Ly00" name="Layer_808_Cyclical.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Cyclical.flac"/>
         <FILE id="B8Ly01" name="Layer_808_Heavyweight.flac" compile="0" resource="1" file="Resources/Layers/Layer_808_Heavyweight.flac"/>

@@ -32,11 +32,11 @@ enum class Weight { medium, semibold, bold };
 inline juce::Font font(float height, Weight weight = Weight::medium)
 {
     static const auto medium = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::BarlowSemiCondensedMedium_ttf, BinaryData::BarlowSemiCondensedMedium_ttfSize);
+        BinaryData::EpsilonDialRegular_ttf, BinaryData::EpsilonDialRegular_ttfSize);
     static const auto semibold = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::BarlowSemiCondensedSemiBold_ttf, BinaryData::BarlowSemiCondensedSemiBold_ttfSize);
+        BinaryData::EpsilonDialBold_ttf, BinaryData::EpsilonDialBold_ttfSize);
     static const auto bold = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::BarlowSemiCondensedBold_ttf, BinaryData::BarlowSemiCondensedBold_ttfSize);
+        BinaryData::EpsilonDialBold_ttf, BinaryData::EpsilonDialBold_ttfSize);
     const auto& face = weight == Weight::bold ? bold : weight == Weight::semibold ? semibold : medium;
     return juce::Font(juce::FontOptions(face).withHeight(height));
 }

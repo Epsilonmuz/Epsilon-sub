@@ -132,6 +132,6 @@ CI (`.github/workflows/build.yml`, manual or on `v*` tags) builds universal VST3
 
 ## Identity
 
-Manufacturer code `EpsS`, plugin code `E808`, bundle `com.epsilonsounds.e808`, AU type `aumu`, VST3 category Instrument|Synth, sidechain input bus "Kick". Font: Barlow Semi Condensed (SIL OFL, `Resources/Barlow-OFL.txt`).
+Manufacturer code `EpsS`, plugin code `E808`, bundle `com.epsilonsounds.e808`, AU type `aumu`, VST3 category Instrument|Synth, sidechain input bus "Kick". Font: Epsilon Dial, the Epsilon Sounds house typeface (`Resources/EpsilonDial-LICENSE.txt`).
 
 © Epsilon Sounds.
