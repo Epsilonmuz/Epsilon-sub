@@ -2,6 +2,11 @@
 
 **The 808 that's heard everywhere and never fights your kick.** A mono sub-bass instrument (VST3 / AU) by Epsilon Sounds, with the producer chain built in: punch, glide, four anti-aliased drive flavours with **Split** (clean sub under the grit), a filter, **Translate** (harmonics so the 808 is heard on phones), one-knob **Glue**, mono-safe **Width**, a clean **Clip**, **Kick Lock** (phase-aligns and ducks the 808 against your kick) and **Phone Check** with four device curves.
 
+## Install (no build needed)
+
+**Mac (Intel and Apple Silicon):** download [Epsilon 808 for Mac](https://github.com/Epsilonmuz/Epsilon-sub/releases/latest/download/Epsilon-808-macOS-Installer.pkg). Double-click it: the VST3 goes to `/Library/Audio/Plug-Ins/VST3` and the Audio Unit to `/Library/Audio/Plug-Ins/Components`. Then rescan in your DAW (FL Studio: Options > Manage plugins > Find installed plugins). The first time, macOS may say it can't check the installer (it isn't notarised by Apple): click Done, then System Settings > Privacy & Security > **Open Anyway**. No Terminal commands needed. The link always gives the newest build of `main`; it is rebuilt, test-installed on GitHub's Mac and replaced on every push.
+
+
 ![Epsilon 808, Simple view](docs/epsilon-808-simple.png)
 
 Version 1.1.0. Built with JUCE 9.0.5, C++17. macOS 12+ (universal), Windows (VS2022). Engine tests, plugin bench and pluginval (strictness 8, with editor tests) pass on Linux. The release gate is a Mac build and an FL Studio session.
